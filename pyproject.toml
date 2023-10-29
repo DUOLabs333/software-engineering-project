@@ -1,0 +1,15 @@
+[project]
+name = ""
+version = ""
+description = ""
+authors = [
+    {name = "DUOLabs333", email = "dvdugo333@gmail.com"},
+]
+dependencies = [
+    "flask>=3.0.0",
+    "sqlalchemy>=2.0.22",
+]
+requires-python = ">=3.9"
+readme = "README.md"
+license = {text = "MIT"}
+
