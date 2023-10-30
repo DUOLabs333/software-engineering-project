@@ -19,6 +19,7 @@ class User(BaseTable):
     user_type: Mapped[int]
     following: Mapped[str]
     followers: Mapped[str]
+    blocked: Mapped[str]
     balance: Mapped[float]
     tips: Mapped[float]
     avatar: Mapped[str]

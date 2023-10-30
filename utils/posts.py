@@ -2,6 +2,7 @@ import common
 import tables
 from sqlalchemy import select
 import time
+import users
 
 def isTrendyPost(id):
     #Calculates trendy status
@@ -29,6 +30,15 @@ def checkTrendyStatus(id): #Calculates if trendy, adds/removes usertype from mas
         
         user=session.scalars(select(tables.User).where(tables.User.id==id)).first()
         
-        return user.followers>10 and (user.tips>100 or likes-dislikes>10) and trendy_posts>=2
+        isTrendy=user.followers>10 and (user.tips>100 or likes-dislikes>10) and trendy_posts>=2
+        
+        if not isTrendy:
+            user.user_type = users.removeType(user.user_type, users.TRENDY)
+        else:
+            user.user_type=users.addType(user.user_type,users.TRENDY)
+            
+        session.commit()
+        
+        return isTrendy
     
     
