@@ -26,3 +26,14 @@ def removeType(mask,type):
 
 def checkForType(mask,type):
     return bool(mask & (1<<type)==type)
+
+def listTypes(mask): #Lists all types that are present in mask
+    result=[]
+    
+    for pos in globals():
+        if not(pos.isupper() and isinstance(globals()[pos],int)):
+            continue
+    if checkForType(mask, globals()[pos]):
+        result.append(pos)
+    
+    return result

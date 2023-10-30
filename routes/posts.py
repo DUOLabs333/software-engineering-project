@@ -7,16 +7,10 @@ from sqlalchemy import select
 from sqlalchemy import Session
 from sqlalchemy import desc
 
-def hasAccess(username):
-    hash=request.get_data(as_text=True)
-    with Session(common.database) as session:
-        query=select(tables.Users.password_hash).where(tables.Users.username==username)
-        return hash==session.scalars(query).first()
-        
 @app.route("/user/<username>/homepage")
 def homepage(username):
     result={}
-    if not hasAccess(username):
+    if not common.hasAccess(username):
         result["error"]="ACCESS_DENIED"
         return result
     
@@ -44,7 +38,7 @@ def homepage(username):
 @app.route("/user/<username>/trending")
 def trending(username):
     result={}
-    if not hasAccess(username):
+    if not common.hasAccess(username):
         result["error"]="ACCESS_DENIED"
         return result
     
@@ -67,7 +61,8 @@ def trending(username):
                 if not posts.isTrendyPost(row):
                     continue
                 result["result"].append(row)
-            if count==0:
+            
+            if count==0: #No more posts left to iterate through
                 break
         
         return result
