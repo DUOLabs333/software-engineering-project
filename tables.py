@@ -9,7 +9,7 @@ from sqlalchemy.orm import relationship
 class BaseTable(DeclarativeBase):
     pass
 
-class User(Base):
+class User(BaseTable):
     __tablename__ = "USERS"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -25,10 +25,10 @@ class User(Base):
     liked_posts: Mapped[str]
     inbox: Mapped[int]
 
-class Post(Base):
+class Post(BaseTable):
     __tablename__ = "POSTS"
     id: Mapped[int] = mapped_column(primary_key=True)
-    author: Mapped[int]=mapped_column(index=True)
+    author: Mapped[int] = mapped_column(index=True)
     time_posted: Mapped[int]
     keywords: Mapped[str]
     views: Mapped[int]
@@ -37,6 +37,14 @@ class Post(Base):
     has_picture: Mapped[bool]
     has_video: Mapped[bool]
     post_type: Mapped[int]
-    parent_post: Mapped[int]
+    parent_post: Mapped[int] = mapped_column(nullable=True)
 
-class JobApplication(Base):
+class JobApplication(BaseTable):
+    __tablename__="JOBS"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    author: Mapped[int]
+    questions: Mapped[str]
+    time_posted: Mapped[int]
+    due_date: Mapped[int] = mapped_column(nullable=True)
+    
