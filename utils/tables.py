@@ -32,6 +32,7 @@ class Post(BaseTable):
     author: Mapped[int] = mapped_column(index=True)
     time_posted: Mapped[int]
     keywords: Mapped[str]
+    text: Mapped[str]
     views: Mapped[int]
     likes: Mapped[int]
     dislikes: Mapped[int]

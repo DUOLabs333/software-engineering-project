@@ -7,6 +7,12 @@ from sqlalchemy import select
 from sqlalchemy import Session
 from sqlalchemy import desc
 
+import base64, json, time
+import multiprocessing
+
+lock=multiprocessing.Lock()
+
+
 @app.route("/user/<username>/homepage")
 def homepage(username):
     result={}
@@ -66,3 +72,40 @@ def trending(username):
                 break
         
         return result
+
+@app.route("/user/<username>/post")
+def post(username):
+    result={}
+    if not common.hasAccess(username):
+        result["error"]="ACCESS_DENIED"
+        return result
+    
+    data=request.args.get("data")
+    data=base64.b64decode(data)
+    data=json.decode(data)
+    
+    post=tables.Post()
+   
+    with Session(common.database) as session:
+        lock.acquire()
+        
+        post.id=session.scalars(select(tables.Post.id).order_by(desc(tables.Post.id)).limit(1)).first()+1 #Get next biggest id
+        post.time_posted=int(time.time())
+        
+        for attr in ["author","keywords","text","parent_post","post_type"]:
+            setattr(post,attr,data[attr])
+        
+        for attr in ["views","likes","dislikes"]:
+            setattr(post,attr,0)
+        
+        for attr in ["has_picture","has_video"]:
+            setattr(post,attr,False) #Need to find a way to parse markdown for links
+        
+        session.add(post)
+        session.commit(post)
+        lock.release()
+    return result
+    
+    
+    
+    
