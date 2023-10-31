@@ -13,7 +13,7 @@ import multiprocessing
 lock=multiprocessing.Lock()
 
 
-@app.route("/user/<username>/homepage")
+@app.route("/users/<username>/homepage")
 def homepage(username):
     result={}
     if not common.hasAccess(username):
@@ -41,7 +41,7 @@ def homepage(username):
         return result
         
             
-@app.route("/user/<username>/trending")
+@app.route("/users/<username>/trending")
 def trending(username):
     result={}
     if not common.hasAccess(username):
@@ -73,7 +73,7 @@ def trending(username):
         
         return result
 
-@app.route("/user/<username>/post")
+@app.route("/users/<username>/posts/create")
 def post(username):
     result={}
     if not common.hasAccess(username):
@@ -92,14 +92,17 @@ def post(username):
         post.id=session.scalars(select(tables.Post.id).order_by(desc(tables.Post.id)).limit(1)).first()+1 #Get next biggest id
         post.time_posted=int(time.time())
         
-        for attr in ["author","keywords","text","parent_post","post_type"]:
+        for attr in ["author","keywords","text"]:
             setattr(post,attr,data[attr])
+        
+        post.parent_post=None
+        post.post_type="POST"
         
         for attr in ["views","likes","dislikes"]:
             setattr(post,attr,0)
         
         for attr in ["has_picture","has_video"]:
-            setattr(post,attr,False) #Need to find a way to parse markdown for links
+            setattr(post,attr,False) #Need to find a way to parse markdown for links --- maybe use regex for ![alt-text](link)
         
         session.add(post)
         session.commit(post)
