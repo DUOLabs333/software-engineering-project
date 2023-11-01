@@ -4,7 +4,9 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 
+import time
 # declarative base class
 class BaseTable(DeclarativeBase):
     pass
@@ -18,13 +20,13 @@ class User(BaseTable):
     creation_time: Mapped[int]
     user_type: Mapped[int]
     following: Mapped[str]
-    followers: Mapped[str]
     blocked: Mapped[str]
     balance: Mapped[float]
     tips: Mapped[float]
     avatar: Mapped[str]
     liked_posts: Mapped[str]
     inbox: Mapped[int]
+
 
 class Post(BaseTable):
     __tablename__ = "POSTS"
@@ -40,6 +42,15 @@ class Post(BaseTable):
     has_video: Mapped[bool]
     post_type: Mapped[int]
     parent_post: Mapped[int] = mapped_column(nullable=True)
+    
+    @hybrid_property
+    def is_trending(self):
+        self.views>10 & (self.views>=3*self.dislikes)
+    
+    @hybrid_property
+    def trending_ranking(self):
+        return self.views/self.dislikes
+        
 
 class JobApplication(BaseTable):
     __tablename__="JOBS"

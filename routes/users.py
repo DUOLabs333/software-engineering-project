@@ -16,37 +16,12 @@ lock=multiprocessing.Lock()
 
 #Lock table when deleting, creating, and renaming
 
-@app.route("/users/<int:uid>/info")
-def info(uid):
-    result={}
-    if not common.hasAccess(uid):
-        result["error"]="ACCESS_DENIED"
-        return result
-    
-    with Session(common.database) as session:
-        
-        user=common.getUser(uid)
-        if user is None:
-            result["error"]="USER_NOT_FOUND"
-            return result
-        
-        result["result"]={}
-        for col in user.__mapper__.attrs.keys():
-            value=getattr(user,col)
-            
-            if col=="password_hash":
-                continue
-            elif col=="user_type":
-                value=users.listTypes(value)
-                
-            result["result"][col]=value
-        
-        return result
-
 def checkIfUsernameExists(username): #You must have the USERS database locked, and you must not unlock it until you placed the (new) username into the database
     with Session(common.database) as session:
         return session.scalars(select(tables.User.id).where(tables.User.username==data["username"])).first() is not None
-        
+
+#CRUD: Create, Read, Update, Delete
+
 @app.route("/users/create")
 def create():
     result={}
@@ -94,23 +69,33 @@ def create():
     result["id"]=user.id
     return result
 
-@app.route("/users/<int:uid>/delete")
-def delete(uid):
+@app.route("/users/<int:uid>/info")
+def info(uid):
     result={}
     if not common.hasAccess(uid):
         result["error"]="ACCESS_DENIED"
         return result
     
     with Session(common.database) as session:
-        lock.acquire()
         
-        user=common.getUser(uid)
+        user=users.getUser(uid)
+        if user is None:
+            result["error"]="USER_NOT_FOUND"
+            return result
         
-        session.delete(user)
-        session.commit()
-        lock.release()
+        result["result"]={}
+        for col in user.__mapper__.attrs.keys():
+            value=getattr(user,col)
+            
+            if col=="password_hash":
+                continue
+            elif col=="user_type":
+                value=users.listTypes(value)
+                
+            result["result"][col]=value
+        
         return result
-
+        
 @app.route("/users/<int:uid>/rename")
 def rename(uid):
     result={}
@@ -122,7 +107,7 @@ def rename(uid):
     
     with Session(common.database) as session:
         lock.acquire()
-        user=common.getUser(uid)
+        user=users.getUser(uid)
         if user.username==new_name:
             result["error"]="NAME_NOT_CHANGED"
             lock.release()
@@ -136,4 +121,21 @@ def rename(uid):
             session.commit()
             lock.release()
             return result
+            
+@app.route("/users/<int:uid>/delete")
+def delete(uid):
+    result={}
+    if not common.hasAccess(uid):
+        result["error"]="ACCESS_DENIED"
+        return result
+    
+    with Session(common.database) as session:
+        lock.acquire()
+        
+        user=users.getUser(uid)
+        
+        session.delete(user)
+        session.commit()
+        lock.release()
+        return result
                           

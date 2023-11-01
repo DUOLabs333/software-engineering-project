@@ -1,4 +1,6 @@
-from ..utils import common, tables, posts, users
+from ..utils import common, tables, users
+
+from ..utils import posts
 
 from common import app
 
@@ -23,7 +25,7 @@ def homepage(uid):
     limit=request.args.get("limit",50)
     before=request.args.get("before",float("inf"))
     
-    user=common.getUser(uid)
+    user=users.getUser(uid)
     with Session(common.database) as session:
         blocked=user.blocked
         blocked=common.fromStringList(blocked)
@@ -53,17 +55,15 @@ def trending(uid):
     with Session(common.database) as session:
         result["result"]=[]
         
-        blocked=common.getUser(uid).blocked
+        blocked=users.getUser(uid).blocked
         blocked=common.fromStringList(blocked)
         
         while len(result["result"])<50:
-            query=select(tables.Post.id).where((tables.Post.id < before) & (tables.Post.author.not_in(blocked))).limit(limit-len(result["result"])).order_by(desc(tables.Post.id))
+            query=select(tables.Post.id).where((tables.Post.id < before) & (tables.Post.author.not_in(blocked)) & (tables.Post.is_trending==True)).limit(limit-len(result["result"])).order_by(desc(tables.Post.trendy_ranking))
             
             count=0
             for row in session.scalars(query).all():
                 count+=1
-                if not posts.isTrendyPost(row):
-                    continue
                 result["result"].append(row)
             
             if count==0: #No more posts left to iterate through
@@ -112,6 +112,14 @@ def post(uid):
     
     return result
 
+@app.route("/users/<int:uid>/posts/info")
+def info(uid):
+    result={}
+    if not common.hasAccess(uid):
+        result["error"]="ACCESS_DENIED"
+        return result
+    
+    post=posts.getPost(uid)
 @app.route("/users/<int:uid>/posts/delete")
 def delete(uid):
     result={}
@@ -124,17 +132,16 @@ def delete(uid):
     
     post_id=request.args.get("id",type=int)
     
-    #If anything: Can delete if author, if comment, can delete if parent post's author is you
     with Session(common.database) as session:
-        post=session.scalars(select(tables.Post).where(tables.Post.id==post_id)).first()
+        post=posts.getPost(post_id)
         can_delete=False
         
-        user=common.getUser(uid)
+        user=users.getUser(uid)
         
         if post.type=="INBOX":
             can_delete=False
         elif post.type=="COMMENT":
-            parent_post=session.scalars(select(tables.Post).where(tables.Post.id==post.parent_id)).first()
+            parent_post=posts.getPost(post.parent_id)
             if parent_post.author==uid:
                 can_delete=True
         elif post.author==uid:
