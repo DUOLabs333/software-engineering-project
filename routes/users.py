@@ -1,5 +1,5 @@
 from ..utils import common, tables
-from common import app
+from ..common import app
 
 from ..utils import users
 
@@ -100,4 +100,40 @@ def delete(uid):
     if not common.hasAccess(uid):
         result["error"]="ACCESS_DENIED"
         return result
+    
+    with Session(common.database) as session:
+        lock.acquire()
+        
+        user=common.getUser(uid)
+        
+        session.delete(user)
+        session.commit()
+        lock.release()
+        return result
+
+@app.route("/users/<int:uid>/rename")
+def rename(uid):
+    result={}
+    if not common.hasAccess(uid):
+        result["error"]="ACCESS_DENIED"
+        return result
+    
+    new_name=request.args.get("new_name")
+    
+    with Session(common.database) as session:
+        lock.acquire()
+        user=common.getUser(uid)
+        if user.username==new_name:
+            result["error"]="NAME_NOT_CHANGED"
+            lock.release()
+            return result
+        elif session.scalars(select(tables.User.id).where(tables.User.username==new_name)).first() is not None:
+            result["error"]="NAME_ALREADY_TAKEN"
+            lock.release()
+            return result
+        else:
+            user.username=new_name
+            session.commit()
+            lock.release()
+            return result
                           

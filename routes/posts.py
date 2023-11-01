@@ -122,7 +122,7 @@ def delete(uid):
     
     lock.acquire()
     
-    post_id=request.args.get("id")
+    post_id=request.args.get("id",type=int)
     
     #If anything: Can delete if author, if comment, can delete if parent post's author is you
     with Session(common.database) as session:
