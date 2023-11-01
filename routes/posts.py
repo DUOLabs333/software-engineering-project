@@ -1,4 +1,4 @@
-from ..utils import common, tables, posts
+from ..utils import common, tables, posts, users
 
 from common import app
 
@@ -13,23 +13,22 @@ import multiprocessing
 lock=multiprocessing.Lock()
 
 
-@app.route("/users/<username>/homepage")
-def homepage(username):
+@app.route("/users/<int:uid>/homepage")
+def homepage(uid):
     result={}
-    if not common.hasAccess(username):
+    if not common.hasAccess(uid):
         result["error"]="ACCESS_DENIED"
         return result
     
     limit=request.args.get("limit",50)
     before=request.args.get("before",float("inf"))
     
+    user=common.getUser(uid)
     with Session(common.database) as session:
-        blocked=select(tables.User.blocked).where(tables.User.username==username)
-        blocked=session.scalars(blocked).first()
+        blocked=user.blocked
         blocked=common.fromStringList(blocked)
         
-        following=select(tables.User.following).where(tables.User.username==username)
-        following=session.scalars(following).first()
+        following=user.following
         following=common.fromStringList(following)
         
         query=select(tables.Post.id).where((tables.Post.author.in_(following)) & (tables.Post.id < before) & (tables.Post.author.not_in(blocked))).limit(limit).order_by(desc(tables.Post.id))
@@ -41,10 +40,10 @@ def homepage(username):
         return result
         
             
-@app.route("/users/<username>/trending")
-def trending(username):
+@app.route("/users/<int:uid>/trending")
+def trending(uid):
     result={}
-    if not common.hasAccess(username):
+    if not common.hasAccess(uid):
         result["error"]="ACCESS_DENIED"
         return result
     
@@ -54,8 +53,7 @@ def trending(username):
     with Session(common.database) as session:
         result["result"]=[]
         
-        blocked=select(tables.User.blocked).where(tables.User.username==username)
-        blocked=session.scalars(blocked).first()
+        blocked=common.getUser(uid).blocked
         blocked=common.fromStringList(blocked)
         
         while len(result["result"])<50:
@@ -73,18 +71,7 @@ def trending(username):
         
         return result
 
-#Have a function for making post, and fill with different types (type, data). Return json file with id
-@app.route("/users/<username>/posts/create")
-def post(username):
-    result={}
-    if not common.hasAccess(username):
-        result["error"]="ACCESS_DENIED"
-        return result
-    
-    data=request.args.get("data")
-    data=base64.b64decode(data)
-    data=json.decode(data)
-    
+def createPost(type,data):
     post=tables.Post()
    
     with Session(common.database) as session:
@@ -97,19 +84,74 @@ def post(username):
             setattr(post,attr,data[attr])
         
         post.parent_post=None
-        post.post_type="POST"
+        post.post_type=type
         
         for attr in ["views","likes","dislikes"]:
             setattr(post,attr,0)
         
         for attr in ["has_picture","has_video"]:
-            setattr(post,attr,False) #Need to find a way to parse markdown for links --- maybe use regex for ![alt-text](link)
+            setattr(post,attr,data.get(attr,False)) #Need to find a way to parse markdown for links --- maybe use regex for ![alt-text](link)
         
         session.add(post)
         session.commit(post)
         lock.release()
-    return result
+    return post.id
     
+@app.route("/users/<int:uid>/posts/create")
+def post(uid):
+    result={}
+    if not common.hasAccess(uid):
+        result["error"]="ACCESS_DENIED"
+        return result
+    
+    data=request.args.get("data")
+    data=base64.b64decode(data)
+    data=json.decode(data)
+    
+    result["id"]=createPost("POST", data)
+    
+    return result
+
+@app.route("/users/<int:uid>/posts/delete")
+def delete(uid):
+    result={}
+    if not common.hasAccess(uid):
+        result["error"]="ACCESS_DENIED"
+        return result
+    
+    
+    lock.acquire()
+    
+    post_id=request.args.get("id")
+    
+    #If anything: Can delete if author, if comment, can delete if parent post's author is you
+    with Session(common.database) as session:
+        post=session.scalars(select(tables.Post).where(tables.Post.id==post_id)).first()
+        can_delete=False
+        
+        user=common.getUser(uid)
+        
+        if post.type=="INBOX":
+            can_delete=False
+        elif post.type=="COMMENT":
+            parent_post=session.scalars(select(tables.Post).where(tables.Post.id==post.parent_id)).first()
+            if parent_post.author==uid:
+                can_delete=True
+        elif post.author==uid:
+            can_delete=True
+        elif users.checkForType(user.user_type, users.SUPER):
+            can_delete=True
+        
+        if not can_delete:
+            result["error"]="INSUFFICIENT_PERMISSION"
+            lock.release()
+            return result
+        else:
+            session.delete(post)
+            session.commit()
+            lock.release()
+            return result
+
     
     
     

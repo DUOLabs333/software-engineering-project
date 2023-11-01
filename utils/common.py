@@ -14,8 +14,13 @@ def fromStringList(string):
 def toStringList(lst):
     return " ".join(lst)
 
-def hasAccess(username):
-    hash=request.get_data(as_text=True)
+def getUser(uid):
     with Session(common.database) as session:
-        query=select(tables.Users.password_hash).where(tables.Users.username==username)
-        return hash==session.scalars(query).first()
+        query=select(tables.User).where(tables.User.id==uid)
+        return session.scalars(query).first()
+        
+def hasAccess(uid):
+    hash=request.get_data(as_text=True)
+    
+    user=getUser(uid)
+    return (user is not None) and (hash==user.password_hash)

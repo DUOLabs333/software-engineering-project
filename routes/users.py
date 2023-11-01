@@ -10,22 +10,22 @@ import multiprocessing
 import base64, json, time
 
 import posts
+import random
 
 lock=multiprocessing.Lock()
 
 #Lock table when deleting, creating, and renaming
 
-@app.route("/users/<username>/info")
-def info(username):
+@app.route("/users/<int:uid>/info")
+def info(uid):
     result={}
-    if not common.hasAccess(username):
+    if not common.hasAccess(uid):
         result["error"]="ACCESS_DENIED"
         return result
     
     with Session(common.database) as session:
-        query=select(tables.User).where(tables.User.username==username)
-        user=session.scalars(query).first()
         
+        user=common.getUser(uid)
         if user is None:
             result["error"]="USER_NOT_FOUND"
             return result
@@ -43,19 +43,29 @@ def info(username):
         
         return result
 
+def checkIfUsernameExists(username): #You must have the USERS database locked, and you must not unlock it until you placed the (new) username into the database
+    with Session(common.database) as session:
+        return session.scalars(select(tables.User.id).where(tables.User.username==data["username"])).first() is not None
+        
 @app.route("/users/create")
 def create():
     result={}
     data=json.loads(base64.b64decode(request.get_data()).decode())
     
+    lock.acquire()
     if data["username"] is not None:
-        with Session(common.database) as session:
-            lock.acquire()
-            if session.scalars(select(tables.User.id).where(tables.User.username==data["username"])).first() is not None:
-                lock.release()
-                result["error"]="USERNAME_EXISTS"
-                return result
-    
+        if checkIfUsernameExists(data["username"]):
+            lock.release()
+            result["error"]="USERNAME_EXISTS"
+            return result
+                
+    else:
+        while True:
+            data["username"]="anon_"+random.randint(0,10000000)
+            if not checkIfUsernameExists(data["user"]):
+                break
+        
+        
     user=tables.User()
     
     user.id=(session.scalars(select(tables.User.id).order_by(desc(tables.User.id)).limit(1)).first() or 0)+1
@@ -83,4 +93,11 @@ def create():
         lock.release()
     result["id"]=user.id
     return result
-                        
+
+@app.route("/users/<int:uid>/delete")
+def delete(uid):
+    result={}
+    if not common.hasAccess(uid):
+        result["error"]="ACCESS_DENIED"
+        return result
+                          
