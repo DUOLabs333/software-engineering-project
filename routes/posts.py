@@ -119,7 +119,45 @@ def info(uid):
         result["error"]="ACCESS_DENIED"
         return result
     
-    post=posts.getPost(uid)
+    post=posts.getPost(requests.args.get("id"))
+    
+    if post is None:
+        result["error"]="POST_NOT_FOUND"
+        return result
+        
+    result["result"]={}
+    
+    for col in post.__mapper__.attrs.keys():
+        value=getattr(post,col)
+        
+        if col=="keywords":
+            value=common.fromStringList(value)
+            
+        result["result"][col]=value
+    return result
+
+@app.route("/users/<int:uid>/posts/edit")
+def edit(uid):
+    result={}
+    if not common.hasAccess(uid):
+        result["error"]="ACCESS_DENIED"
+        return result
+    
+    with Session(common.database) as session:
+        data=json.decode(base64.decode(requests.args.get("data")).decode())
+        post=posts.getPost(data["id"])
+        for key in data:
+            value=data[key]
+            
+            if key=="id":
+                continue
+            elif key=="keywords":
+                value=common.toStringList(value)
+                
+            setattr(post,key,value)
+            
+    return result
+    
 @app.route("/users/<int:uid>/posts/delete")
 def delete(uid):
     result={}

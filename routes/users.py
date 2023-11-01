@@ -15,6 +15,7 @@ import random
 lock=multiprocessing.Lock()
 
 #Lock table when deleting, creating, and renaming
+#To get followers, we must use table.User.following.contains(f" {user.id} ")
 
 def checkIfUsernameExists(username): #You must have the USERS database locked, and you must not unlock it until you placed the (new) username into the database
     with Session(common.database) as session:
@@ -52,7 +53,7 @@ def create():
     
     user.user_type=users.addType(0, users.SURFER)
     
-    for attr in ["following","followers","blocked","liked_posts"]:
+    for attr in ["following","blocked","liked_posts"]:
         setattr(user,attr,common.toStringList([]))
     
     user.inbox=posts.createPost("INBOX",{"author": user.id, "text":"This is your inbox.","keywords":[]})
@@ -91,6 +92,8 @@ def info(uid):
                 continue
             elif col=="user_type":
                 value=users.listTypes(value)
+            elif col=="following":
+                value=common.fromStringList(value)
                 
             result["result"][col]=value
         
