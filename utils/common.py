@@ -11,6 +11,9 @@ app=Flask("backend_server")
 def fromStringList(string):
     return string.split(" ")
 
+def toStringList(lst):
+    return " ".join(lst)
+
 def hasAccess(username):
     hash=request.get_data(as_text=True)
     with Session(common.database) as session:

@@ -73,6 +73,7 @@ def trending(username):
         
         return result
 
+#Have a function for making post, and fill with different types (type, data). Return json file with id
 @app.route("/users/<username>/posts/create")
 def post(username):
     result={}
@@ -89,7 +90,7 @@ def post(username):
     with Session(common.database) as session:
         lock.acquire()
         
-        post.id=session.scalars(select(tables.Post.id).order_by(desc(tables.Post.id)).limit(1)).first()+1 #Get next biggest id
+        post.id=(session.scalars(select(tables.Post.id).order_by(desc(tables.Post.id)).limit(1)).first() or 0)+1 #Get next biggest id
         post.time_posted=int(time.time())
         
         for attr in ["author","keywords","text"]:
