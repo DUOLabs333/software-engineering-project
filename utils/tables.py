@@ -62,3 +62,8 @@ class JobApplication(BaseTable):
     time_posted: Mapped[int]
     due_date: Mapped[int] = mapped_column(nullable=True)
     
+class Balance(BaseTable):
+    __tablename__="BALANCE"
+    
+    id: Mapped[int] = mapped_column(primary_key=True)
+    balance: Mapped[float]
