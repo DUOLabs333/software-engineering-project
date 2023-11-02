@@ -83,8 +83,8 @@ def createPost(type,data):
         for attr in ["author","keywords","text"]:
             setattr(post,attr,data[attr])
         
-        post.parent_post=None
-        post.post_type=type
+        post.parent_post=data.get(attr,None)
+        post.post_type=data.get(attr,"POST")
         
         for attr in ["views","likes","dislikes"]:
             setattr(post,attr,0)
