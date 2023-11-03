@@ -58,7 +58,7 @@ def create():
     
     user.inbox=posts.createPost("INBOX",{"author": user.id, "text":"This is your inbox.","keywords":[]})
     
-    for attr in ["balance","tips"]:
+    for attr in ["tips"]:
         setattr(user,attr,0)
     
     user.avatar=""

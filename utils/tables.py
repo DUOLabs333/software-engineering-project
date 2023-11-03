@@ -21,7 +21,6 @@ class User(BaseTable):
     user_type: Mapped[int]
     following: Mapped[str]
     blocked: Mapped[str]
-    balance: Mapped[float]
     tips: Mapped[float]
     avatar: Mapped[str]
     liked_posts: Mapped[str]
@@ -42,7 +41,7 @@ class Post(BaseTable):
     has_picture: Mapped[bool]
     has_video: Mapped[bool]
     post_type: Mapped[int]
-    parent_post: Mapped[int] = mapped_column(nullable=True)
+    parent_post: Mapped[int] = mapped_column(nullable=True,index=True)
     
     @hybrid_property
     def is_trending(self):
