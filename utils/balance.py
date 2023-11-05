@@ -1,7 +1,7 @@
-from ..utils import tables, common
+from utils import tables, common
 
 from sqlalchemy import select
-from sqlalchemy import Session
+from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
 def GetBalance(id):

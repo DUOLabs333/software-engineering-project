@@ -1,12 +1,12 @@
-from ..utils import common, tables, users
+from utils import common, tables, users
 
-from ..utils import posts
+from utils import posts
 
-from common import app
+from utils.common import app
 
 from flask import request
 from sqlalchemy import select
-from sqlalchemy import Session
+from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
 import base64, json, time
@@ -113,7 +113,7 @@ def post(uid):
     return result
 
 @app.route("/users/<int:uid>/posts/info")
-def info(uid):
+def post_info(uid):
     result={}
     if not common.hasAccess(uid):
         result["error"]="ACCESS_DENIED"
@@ -137,7 +137,7 @@ def info(uid):
     return result
 
 @app.route("/users/<int:uid>/posts/edit")
-def edit(uid):
+def post_edit(uid):
     result={}
     if not common.hasAccess(uid):
         result["error"]="ACCESS_DENIED"
@@ -159,7 +159,7 @@ def edit(uid):
     return result
     
 @app.route("/users/<int:uid>/posts/delete")
-def delete(uid):
+def post_delete(uid):
     result={}
     if not common.hasAccess(uid):
         result["error"]="ACCESS_DENIED"

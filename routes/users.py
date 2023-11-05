@@ -1,15 +1,15 @@
-from ..utils import common, tables
-from ..common import app
+from utils import common, tables
+from utils.common import app
 
-from ..utils import users
+from utils import users
 
 from flask import request
 from sqlalchemy import select
-from sqlalchemy import Session
+from sqlalchemy.orm import Session
 import multiprocessing
 import base64, json, time
 
-import posts
+from routes import users
 import random
 
 lock=multiprocessing.Lock()
