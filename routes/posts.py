@@ -196,6 +196,58 @@ def post_delete(uid):
             session.commit()
             lock.release()
             return result
+        
+@app.route("/users/<int:uid>/posts/<int:pid>/like")
+def like_post(uid, pid):
+    result = {}
+    if not common.hasAccess(uid):
+        result["error"] = "ACCESS_DENIED"
+        return result
+
+    with Session(common.database) as session:
+        post = posts.getPost(pid)
+        if not post:
+            result["error"] = "POST_NOT_FOUND"
+            return result
+
+        user = users.getUser(uid)
+        liked_posts = common.fromStringList(user.liked_posts)
+        if str(pid) in liked_posts:
+            result["error"] = "POST_ALREADY_LIKED"
+            return result
+
+        post.likes += 1
+        liked_posts.append(str(pid))
+        user.liked_posts = common.toStringList(liked_posts)
+        session.commit()
+
+    result["success"] = "POST_LIKED"
+    return result
+
+@app.route("/users/<int:uid>/posts/<int:pid>/dislike")
+def dislike_post(uid, pid):
+    result = {}
+    if not common.hasAccess(uid):
+        result["error"] = "ACCESS_DENIED"
+        return result
+
+    with Session(common.database) as session:
+        post = posts.getPost(pid)
+        if not post:
+            result["error"] = "POST_NOT_FOUND"
+            return result
+
+        user = users.getUser(uid)
+        liked_posts = common.fromStringList(user.liked_posts)
+        if str(pid) in liked_posts:
+            result["error"] = "CANNOT_DISLIKE_LIKED_POST"
+            return result
+
+        post.dislikes += 1
+        session.commit()
+
+    result["success"] = "POST_DISLIKED"
+    return result
 
     
     

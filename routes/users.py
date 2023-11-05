@@ -141,4 +141,57 @@ def delete(uid):
         session.commit()
         lock.release()
         return result
+
+@app.route("/users/<int:user_id>/add_type")
+def add_user_type(user_id):
+    result = {}
+    data = request.get_json()  # Expecting a JSON body with "type_to_add" as an integer
+    
+    if not common.hasAccess(user_id):
+        result["error"] = "ACCESS_DENIED"
+        return result, 403
+
+    type_to_add = data.get("type_to_add")
+    if type_to_add is None:
+        result["error"] = "TYPE_NOT_PROVIDED"
+        return result, 400
+
+    with Session(common.database) as session:
+        user = users.getUser(user_id, session)
+        if user:
+            user.user_type = users.addType(user.user_type, type_to_add)
+            session.commit()
+            result["user_type"] = users.listTypes(user.user_type)
+        else:
+            result["error"] = "USER_NOT_FOUND"
+            return result, 404
+    
+    return result
+
+@app.route("/users/<int:user_id>/remove_type")
+def remove_user_type(user_id):
+    result = {}
+    data = request.get_json()  # Expecting a JSON body with "type_to_remove" as an integer
+    
+    if not common.hasAccess(user_id):
+        result["error"] = "ACCESS_DENIED"
+        return result, 403
+
+    type_to_remove = data.get("type_to_remove")
+    if type_to_remove is None:
+        result["error"] = "TYPE_NOT_PROVIDED"
+        return result, 400
+
+    with Session(common.database) as session:
+        user = users.getUser(user_id, session)
+        if user:
+            user.user_type = users.removeType(user.user_type, type_to_remove)
+            session.commit()
+            result["user_type"] = users.listTypes(user.user_type)
+        else:
+            result["error"] = "USER_NOT_FOUND"
+            return result, 404
+    
+    return result
+
                           
