@@ -1,5 +1,9 @@
 #Should be imported by all relevant files
 
+import sys,os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)),"..")))
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from flask import Flask, request

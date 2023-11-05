@@ -1,15 +1,17 @@
 from utils import common, tables
 from utils.common import app
 
-from utils import users
+from utils import users, posts
 
 from flask import request
+
 from sqlalchemy import select
+from sqlalchemy import desc
+
 from sqlalchemy.orm import Session
 import multiprocessing
 import base64, json, time
 
-from routes import users
 import random
 
 lock=multiprocessing.Lock()
@@ -19,7 +21,7 @@ lock=multiprocessing.Lock()
 
 def checkIfUsernameExists(username): #You must have the USERS database locked, and you must not unlock it until you placed the (new) username into the database
     with Session(common.database) as session:
-        return session.scalars(select(tables.User.id).where(tables.User.username==data["username"])).first() is not None
+        return session.scalars(select(tables.User.id).where(tables.User.username==username)).first() is not None
 
 #CRUD: Create, Read, Update, Delete
 
@@ -44,8 +46,6 @@ def create():
         
     user=tables.User()
     
-    user.id=(session.scalars(select(tables.User.id).order_by(desc(tables.User.id)).limit(1)).first() or 0)+1
-    
     for attr in ["username","password_hash"]:
         setattr(user,attr,data[attr])
     
@@ -56,18 +56,19 @@ def create():
     for attr in ["following","blocked","liked_posts"]:
         setattr(user,attr,common.toStringList([]))
     
-    user.inbox=posts.createPost("INBOX",{"author": user.id, "text":"This is your inbox.","keywords":[]})
-    
     for attr in ["tips"]:
         setattr(user,attr,0)
     
     user.avatar=""
     
     with Session(common.database) as session:
+        user.id=(session.scalars(select(tables.User.id).order_by(desc(tables.User.id)).limit(1)).first() or 0)+1
+        user.inbox=posts.createPost("INBOX",{"author": user.id, "text":"This is your inbox.","keywords":[]})
+        
         session.add(user)
         session.commit()
         lock.release()
-    result["id"]=user.id
+        result["id"]=user.id
     return result
 
 @app.route("/users/<int:uid>/info")

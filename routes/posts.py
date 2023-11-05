@@ -7,7 +7,6 @@ from utils.common import app
 from flask import request
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
 
 import base64, json, time
 import multiprocessing
@@ -71,32 +70,7 @@ def trending(uid):
         
         return result
 
-def createPost(type,data):
-    post=tables.Post()
-   
-    with Session(common.database) as session:
-        lock.acquire()
-        
-        post.id=(session.scalars(select(tables.Post.id).order_by(desc(tables.Post.id)).limit(1)).first() or 0)+1 #Get next biggest id
-        post.time_posted=int(time.time())
-        
-        for attr in ["author","keywords","text"]:
-            setattr(post,attr,data[attr])
-        
-        post.parent_post=data.get(attr,None)
-        post.post_type=data.get(attr,"POST")
-        
-        for attr in ["views","likes","dislikes"]:
-            setattr(post,attr,0)
-        
-        for attr in ["has_picture","has_video"]:
-            setattr(post,attr,data.get(attr,False)) #Need to find a way to parse markdown for links --- maybe use regex for ![alt-text](link)
-        
-        session.add(post)
-        session.commit(post)
-        lock.release()
-    return post.id
-    
+
 @app.route("/users/<int:uid>/posts/create")
 def post(uid):
     result={}
@@ -108,7 +82,7 @@ def post(uid):
     data=base64.b64decode(data)
     data=json.decode(data)
     
-    result["id"]=createPost("POST", data)
+    result["id"]=posts.createPost("POST", data)
     
     return result
 
