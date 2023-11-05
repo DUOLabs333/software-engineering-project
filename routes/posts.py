@@ -1,9 +1,10 @@
+# type: ignore
 from utils import common, tables, users
 
 from utils import posts
 
 from utils.common import app
-
+import requests
 from flask import request
 from sqlalchemy import select
 from sqlalchemy.orm import Session

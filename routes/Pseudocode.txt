@@ -1,0 +1,47 @@
+Recommend Posts
+#Store info in tuples [user_id, post_id, keyword]
+
+
+#Liked post has keyword,add a trendy post with that keyword to homepage
+
+If user.likedpost HAS keyword!=[]{    #if liked post has any keywords
+	If (trendypost HAS keyword){      #if trendypost HAS specific keyword
+		homepage.append (trendypost)  #add trendypost with keyword to homepage
+}}
+
+
+Possible SQL query:
+SELECT trendypost.user_id, trendypost.post_id, trendypost.keyword
+FROM likedpost, trendypost
+WHERE likedpost.keyword=trendypost.keyword
+	
+
+
+If user.followlist.posts HAS keyword!=[]{    #if following list has any posts that has any keywords
+	If (trendypost HAS keyword){      #if trendypost HAS specific keyword
+		homepage.append (trendypost)  #add trendypost with keyword to homepage
+}}
+
+#assume user.followlist.posts is a tuple with attributes [user_id, post_id, keyword]
+Possible SQL query:
+SELECT trendypost.user_id, trendypost.post_id, trendypost.keyword
+FROM user.followlist.posts, trendypost
+WHERE user.followlist.posts.keyword=trendypost.keyword
+
+
+
+Job Application
+#could return as a string to corporate user
+
+Design_job_application(uid)   #corporate user ONLY can create job app
+Job application table [job_app_id,auther_uid,questions,time posted, due date]
+
+print('What questions would you like to add')
+#store questions into a var
+print('When is the deadline to submit an application')
+
+
+SQL query
+#assume job application datatable jobApp    [job_app_id,auther_uid,questions,time posted, due date]
+INSERT INTO jobApp (job_app_id,auther_uid,questions,time posted, due date)
+VALUES (random integer here,uid,inputted questions, datetime, due_date )

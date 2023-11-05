@@ -1,0 +1,9 @@
+{
+    "python.analysis.typeCheckingMode": "basic",
+    "python.analysis.autoImportCompletions": true,
+    "workbench.colorCustomizations": {
+        "activityBar.background": "#3E214E",
+        "titleBar.activeBackground": "#562E6D",
+        "titleBar.activeForeground": "#FCFBFD"
+    }
+}
