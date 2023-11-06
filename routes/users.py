@@ -53,7 +53,7 @@ def create():
     
     user.user_type=users.addType(0, users.SURFER)
     
-    for attr in ["following","blocked","liked_posts"]:
+    for attr in ["following","blocked","liked_posts","disliked_posts"]:
         setattr(user,attr,common.toStringList([]))
     
     for attr in ["tips"]:

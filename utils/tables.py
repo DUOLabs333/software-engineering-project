@@ -24,6 +24,7 @@ class User(BaseTable):
     tips: Mapped[float]
     avatar: Mapped[str]
     liked_posts: Mapped[str]
+    disliked_posts: Mapped[str]
     inbox: Mapped[int]
 
 
