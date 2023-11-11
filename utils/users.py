@@ -1,5 +1,7 @@
 import functools
-
+from sqlalchemy.orm import Session
+from sqlalchemy import select
+import common, tables
 SURFER=0
 ORDINARY=1
 TRENDY=2
@@ -33,8 +35,8 @@ def listTypes(mask): #Lists all types that are present in mask
     for pos in globals():
         if not(pos.isupper() and isinstance(globals()[pos],int)):
             continue
-    if checkForType(mask, globals()[pos]):
-        result.append(pos)
+        if checkForType(mask, globals()[pos]):
+         result.append(pos)
     
     return result
 

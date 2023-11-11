@@ -1,4 +1,4 @@
-from utils import tables, common
+import tables, common
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session

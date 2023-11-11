@@ -1,7 +1,8 @@
-import utils.common
-import utils.tables
+import common
+import tables
 from sqlalchemy import select
-import utils.users
+from sqlalchemy.orm import Session
+import users
 from datetime import datetime, timedelta
 
 def checkTrendyStatus(id): #Calculates if trendy, adds/removes usertype from mask as needed, commits to table, and returns True or False. May need to run in a loop every n hours (effectively caching it), in the background, or maybe only when accessing Trendy-only information.
