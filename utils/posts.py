@@ -1,13 +1,11 @@
 import utils.common
 import utils.tables
 from sqlalchemy import select
-import time
 import utils.users
-from datetime import datetime
-current_utc_time = datetime.utcnow()
+from datetime import datetime, timedelta
 
 def checkTrendyStatus(id): #Calculates if trendy, adds/removes usertype from mask as needed, commits to table, and returns True or False. May need to run in a loop every n hours (effectively caching it), in the background, or maybe only when accessing Trendy-only information.
-    limit=datetime.utcnow().time()-(5*60*60)
+    limit = datetime.utcnow() - timedelta(hours=5)
     
     query=select(tables.Post).where((tables.Post.author==id) & (datetime.utcnow().time()-tables.Post.time_posted<5*60*60))
     
