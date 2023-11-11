@@ -4,14 +4,15 @@ from utils import posts
 
 from utils.common import app
 
-from flask import request
+from flask import request, send_file
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-import base64, json, time
+import base64, json, time, os, random
 import multiprocessing
+from pathlib import Path
 
-lock=multiprocessing.Lock()
+lock=multiprocessing.Lock() #Not enough to use autoincrement ---- autoincrement doesn't neccessarily create monotonically increasing IDs, only unique ones. However, we need it in a specific order.
 
 
 @app.route("/users/<int:uid>/homepage")
@@ -171,6 +172,53 @@ def post_delete(uid):
             lock.release()
             return result
 
+random_string = lambda N: ''.join(random.choices(string.ascii_uppercase + string.digits, k=N))
+
+upload_lock=multiprocessing.Lock()
+@app.route("/users/<int:uid>/upload")
+def upload(uid):
+    result={}
+    if not common.hasAccess(uid):
+        result["error"]="ACCESS_DENIED"
+        return result
+    
+    data=request.args.get("data")  
+    type=request.args.get("type")
+    
+    upload_lock.acquire()
+    with Session(common.database) as session:
+        upload=tables.Upload()
+        
+        while True: #Make sure there is not a row already with this filename
+            upload.path="/".join("images",random_string(10))
+            if session.scalars(select(tables.Upload.id).where(tables.Upload.path==upload.path)).first() is None:
+                break
+            
+            
+        upload.type=type
+        
+        session.add(upload)
+        session.commit()
+        
+        upload_lock.release()
+        
+        Path("images").mkdir(parents=True, exist_ok=True)
+        
+        with open(upload.path.replace("/",os.path.sep),"wb+") as f: #Windows. That is all I'll say.
+            f.write(base64.b64decode(data))
+            
+        result["url"]=f"images/{upload.id}"
+        return result
+
+@app.route("/images/<int:id>")
+def image(id):
+    with Session(common.database) as session:
+        path, type =session.scalars(select(tables.Upload.path, tables.Upload.type).where(tables.Upload.id==id)).first()
+        path=path.replace("/",os.path.sep)
+        
+        return send_file(path, mimetype="image/"+type)
+        
+    
     
     
     

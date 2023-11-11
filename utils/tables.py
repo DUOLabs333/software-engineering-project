@@ -14,7 +14,7 @@ class BaseTable(DeclarativeBase):
 class User(BaseTable):
     __tablename__ = "USERS"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True,autoincrement=True)
     username: Mapped[str] = mapped_column(primary_key=True)
     password_hash: Mapped[str]
     creation_time: Mapped[int]
@@ -67,3 +67,10 @@ class Balance(BaseTable):
     
     id: Mapped[int] = mapped_column(primary_key=True)
     balance: Mapped[float]
+
+class Upload(BaseTable):
+    __table__name="UPLOADS"
+    
+    id: Mapped[int]= mapped_column(primary_key=True,autoincrement=True)
+    path: Mapped[str]
+    type: Mapped[str]

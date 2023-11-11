@@ -14,7 +14,7 @@ import base64, json, time
 
 import random
 
-lock=multiprocessing.Lock()
+lock=multiprocessing.Lock() #We lock not because of the IDs (autoincrement is enough), but because of the usernames
 
 #Lock table when deleting, creating, and renaming
 #To get followers, we must use table.User.following.contains(f" {user.id} ")
@@ -62,7 +62,6 @@ def create():
     user.avatar=""
     
     with Session(common.database) as session:
-        user.id=(session.scalars(select(tables.User.id).order_by(desc(tables.User.id)).limit(1)).first() or 0)+1
         user.inbox=posts.createPost("INBOX",{"author": user.id, "text":"This is your inbox.","keywords":[]})
         
         session.add(user)
