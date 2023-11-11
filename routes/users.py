@@ -145,53 +145,55 @@ def delete(uid):
 @app.route("/users/<int:user_id>/add_type")
 def add_user_type(user_id):
     result = {}
-    data = request.get_json()  # Expecting a JSON body with "type_to_add" as an integer
-    
-    if not common.hasAccess(user_id):
-        result["error"] = "ACCESS_DENIED"
-        return result, 403
+    current_user_id = common.getCurrentUserId()
 
-    type_to_add = data.get("type_to_add")
-    if type_to_add is None:
-        result["error"] = "TYPE_NOT_PROVIDED"
-        return result, 400
+    if not users.isSuperUser(current_user_id) or current_user_id == user_id:
+        result["error"] = "ACCESS_DENIED"
+        return result
+
+    type_to_add = request.args.get("type_to_add")
+    if not type_to_add or not hasattr(users, type_to_add):
+        result["error"] = "INVALID_TYPE_PROVIDED"
+        return result
 
     with Session(common.database) as session:
         user = users.getUser(user_id, session)
         if user:
-            user.user_type = users.addType(user.user_type, type_to_add)
+            user_type_constant = getattr(users, type_to_add)
+            user.user_type = users.addType(user.user_type, user_type_constant)
             session.commit()
+            # Only return the updated user types
             result["user_type"] = users.listTypes(user.user_type)
         else:
             result["error"] = "USER_NOT_FOUND"
-            return result, 404
+            return result
     
-    return result
+    return result  
 
 @app.route("/users/<int:user_id>/remove_type")
 def remove_user_type(user_id):
     result = {}
-    data = request.get_json()  # Expecting a JSON body with "type_to_remove" as an integer
-    
-    if not common.hasAccess(user_id):
-        result["error"] = "ACCESS_DENIED"
-        return result, 403
+    current_user_id = common.getCurrentUserId()
 
-    type_to_remove = data.get("type_to_remove")
-    if type_to_remove is None:
-        result["error"] = "TYPE_NOT_PROVIDED"
-        return result, 400
+    if not users.isSuperUser(current_user_id) or current_user_id == user_id:
+        result["error"] = "ACCESS_DENIED"
+        return result
+
+    type_to_remove = request.args.get("type_to_remove")
+    if not type_to_remove or not hasattr(users, type_to_remove):
+        result["error"] = "INVALID_TYPE_PROVIDED"
+        return result
 
     with Session(common.database) as session:
         user = users.getUser(user_id, session)
         if user:
-            user.user_type = users.removeType(user.user_type, type_to_remove)
+            user_type_constant = getattr(users, type_to_remove)
+            user.user_type = users.removeType(user.user_type, user_type_constant)
             session.commit()
+            # Only return the updated user types
             result["user_type"] = users.listTypes(user.user_type)
         else:
             result["error"] = "USER_NOT_FOUND"
-            return result, 404
+            return result
     
-    return result
-
-                          
+    return result  

@@ -212,16 +212,22 @@ def like_post(uid, pid):
 
         user = users.getUser(uid)
         liked_posts = common.fromStringList(user.liked_posts)
-        if str(pid) in liked_posts:
-            result["error"] = "POST_ALREADY_LIKED"
-            return result
+        disliked_posts = common.fromStringList(user.disliked_posts)  # Assuming this method exists
+        
+        # If post is already disliked, remove the dislike first
+        if str(pid) in disliked_posts:
+            post.dislikes -= 1
+            disliked_posts.remove(str(pid))
+            user.disliked_posts = common.toStringList(disliked_posts)
 
-        post.likes += 1
-        liked_posts.append(str(pid))
-        user.liked_posts = common.toStringList(liked_posts)
+        # Proceed to like the post if not already liked
+        if str(pid) not in liked_posts:
+            post.likes += 1
+            liked_posts.append(str(pid))
+            user.liked_posts = common.toStringList(liked_posts)
+        
         session.commit()
 
-    result["success"] = "POST_LIKED"
     return result
 
 @app.route("/users/<int:uid>/posts/<int:pid>/dislike")
@@ -239,14 +245,22 @@ def dislike_post(uid, pid):
 
         user = users.getUser(uid)
         liked_posts = common.fromStringList(user.liked_posts)
+        disliked_posts = common.fromStringList(user.disliked_posts)  # Assuming this method exists
+        
+        # If post is already liked, remove the like first
         if str(pid) in liked_posts:
-            result["error"] = "CANNOT_DISLIKE_LIKED_POST"
-            return result
+            post.likes -= 1
+            liked_posts.remove(str(pid))
+            user.liked_posts = common.toStringList(liked_posts)
 
-        post.dislikes += 1
+        # Proceed to dislike the post if not already disliked
+        if str(pid) not in disliked_posts:
+            post.dislikes += 1
+            disliked_posts.append(str(pid))
+            user.disliked_posts = common.toStringList(disliked_posts)
+        
         session.commit()
 
-    result["success"] = "POST_DISLIKED"
     return result
 
     
