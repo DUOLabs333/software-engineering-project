@@ -11,9 +11,9 @@ def addType(mask,type):
     if isinstance(type,list):
         type=functools.reduce(lambda x,y: x | y,type)
         
-    if checkForType(mask, CORPORATE) or checkForType(mask, SUPER): #SUPER and CORPORATE Users can not become TRENDY
+    if hasType(mask, CORPORATE) or hasType(mask, SUPER): #SUPER and CORPORATE Users can not become TRENDY
         type=removeType(type, TRENDY)
-    elif checkForType(type, CORPORATE) or checkForType(type, SUPER): #If TRENDY users become CORPORATE or SUPER, they can no longer be TRENDY
+    elif hasType(type, CORPORATE) or hasType(type, SUPER): #If TRENDY users become CORPORATE or SUPER, they can no longer be TRENDY
         mask=removeType(mask, TRENDY)
         
     return mask | (1<<type)
@@ -24,7 +24,7 @@ def removeType(mask,type):
         
     return mask & ~(1<<type)
 
-def checkForType(mask,type):
+def hasType(mask,type):
     return bool(mask & (1<<type)==type)
 
 def listTypes(mask): #Lists all types that are present in mask
@@ -33,7 +33,7 @@ def listTypes(mask): #Lists all types that are present in mask
     for pos in globals():
         if not(pos.isupper() and isinstance(globals()[pos],int)):
             continue
-    if checkForType(mask, globals()[pos]):
+    if hasType(mask, globals()[pos]):
         result.append(pos)
     
     return result

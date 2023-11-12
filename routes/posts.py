@@ -79,6 +79,10 @@ def post(uid):
         result["error"]="ACCESS_DENIED"
         return result
     
+    user=users.getUser(uid)
+    if not common.hasType(user.user_type,users.ORDINARY):
+        result["error"]="PERMISSION_DENIED" #If not OU, can't post, dislike, like, etc.
+        return result
     data=request.args.get("data")
     data=base64.b64decode(data)
     data=json.decode(data)
@@ -118,6 +122,11 @@ def post_edit(uid):
         result["error"]="ACCESS_DENIED"
         return result
     
+    user=users.getUser(uid)
+    if not common.hasType(user.user_type,users.ORDINARY):
+        result["error"]="PERMISSION_DENIED" #If not OU, can't post, dislike, like, etc.
+        return result
+        
     with Session(common.database) as session:
         data=json.decode(base64.decode(requests.args.get("data")).decode())
         post=posts.getPost(data["id"])
@@ -181,7 +190,12 @@ def upload(uid):
     if not common.hasAccess(uid):
         result["error"]="ACCESS_DENIED"
         return result
-    
+        
+    user=users.getUser(uid)
+    if not common.hasType(user.user_type,users.ORDINARY):
+        result["error"]="PERMISSION_DENIED" #If not OU, can't post, dislike, like, etc.
+        return result
+        
     data=request.args.get("data")  
     type=request.args.get("type")
     
@@ -216,7 +230,7 @@ def image(id):
         path, type =session.scalars(select(tables.Upload.path, tables.Upload.type).where(tables.Upload.id==id)).first()
         path=path.replace("/",os.path.sep)
         
-        return send_file(path, mimetype="image/"+type)
+        return send_file(path, mimetype=type)
         
     
     
