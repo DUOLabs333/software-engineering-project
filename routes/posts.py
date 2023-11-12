@@ -81,7 +81,7 @@ def post(uid):
     
     user=users.getUser(uid)
     if not common.hasType(user.user_type,users.ORDINARY):
-        result["error"]="PERMISSION_DENIED" #If not OU, can't post, dislike, like, etc.
+        result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
     data=request.args.get("data")
     data=base64.b64decode(data)
@@ -124,7 +124,7 @@ def post_edit(uid):
     
     user=users.getUser(uid)
     if not common.hasType(user.user_type,users.ORDINARY):
-        result["error"]="PERMISSION_DENIED" #If not OU, can't post, dislike, like, etc.
+        result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
         
     with Session(common.database) as session:
@@ -193,12 +193,18 @@ def upload(uid):
         
     user=users.getUser(uid)
     if not common.hasType(user.user_type,users.ORDINARY):
-        result["error"]="PERMISSION_DENIED" #If not OU, can't post, dislike, like, etc.
+        result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
         
     data=request.args.get("data")  
     type=request.args.get("type")
     
+    data_size=(len(data) * 3) / 4 - data.count('=', -2)
+    
+    if data_size> 10*(10**6): #More than 10MB
+        result["error"]="FILE_TOO_LARGE"
+        return result
+        
     upload_lock.acquire()
     with Session(common.database) as session:
         upload=tables.Upload()
