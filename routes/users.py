@@ -141,4 +141,29 @@ def delete(uid):
         session.commit()
         lock.release()
         return result
-                          
+
+@app.route("/users/signin")
+def signin():
+    result={}
+    data=json.loads(base64.b64decode(request.get_data()).decode())
+    
+    with Session(common.database) as session:
+        if "username" not in data:
+            result["error"]="USERNAME_NOT_GIVEN"
+            return result
+            
+        user=session.scalars(select(tables.User).where(tables.User.username==data["username"])).first()
+        
+        if user is None:
+            result["error"]="USER_NOT_FOUND"
+            return result
+        
+        if "password" not in data:
+            result["error"]="PASSWORD_NOT_GIVEN"
+            return result
+        
+        if data["password"]!=user.password_hash:
+            result["error"]="PASSWORD_INCORRECT"
+            return result
+        result["uid"]=user.id
+        return result                        
