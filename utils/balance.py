@@ -1,5 +1,16 @@
 import tables, common
 
+import braintree
+
+gateway = braintree.BraintreeGateway(
+  braintree.Configuration(
+    environment=braintree.Environment.Sandbox,
+    merchant_id='prvgcb88ztrbh7tm',
+    public_key='4hzdkcwrb5ktpdrz',
+    private_key='663c2fa5b4e345c5dba2e81e5541ba2f'
+  )
+)
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
@@ -45,3 +56,22 @@ def RegisterBalance(id):
     with Session(common.database) as session:
         session.add(balance)
         session.commit()
+
+def tipping(id1,id2,amount):
+    with Session(common.database) as session:
+        query1=select(tables.Balance).where(tables.Balance.id==id1)
+        query2=select(tables.Balance).where(tables.Balance.id==id2)
+        balance1=session.scalars(query1).first()
+        balance2=session.scalars(query2).first()
+        if balance1 is None:
+            return balance1
+        if balance2 is None:
+            return balance2
+        if balance1.balance < amount:
+            return -1
+        else:
+            RemoveFromBalance(id1,amount)
+            AddToBalance(id2,amount)
+        session.commit()
+        
+        return balance1.balance

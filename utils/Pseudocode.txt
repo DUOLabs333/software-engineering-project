@@ -9,11 +9,6 @@ If user.likedpost HAS keyword!=[]{    #if liked post has any keywords
 		homepage.append (trendypost)  #add trendypost with keyword to homepage
 }}
 
-
-Possible SQL query:
-SELECT trendypost.user_id, trendypost.post_id, trendypost.keyword
-FROM likedpost, trendypost
-WHERE likedpost.keyword=trendypost.keyword
 	
 
 
@@ -22,11 +17,6 @@ If user.followlist.posts HAS keyword!=[]{    #if following list has any posts th
 		homepage.append (trendypost)  #add trendypost with keyword to homepage
 }}
 
-#assume user.followlist.posts is a tuple with attributes [user_id, post_id, keyword]
-Possible SQL query:
-SELECT trendypost.user_id, trendypost.post_id, trendypost.keyword
-FROM user.followlist.posts, trendypost
-WHERE user.followlist.posts.keyword=trendypost.keyword
 
 
 

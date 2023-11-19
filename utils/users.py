@@ -1,7 +1,7 @@
 import functools
 from sqlalchemy.orm import Session
 from sqlalchemy import select
-import common, tables
+from utils import common, tables
 SURFER=0
 ORDINARY=1
 TRENDY=2

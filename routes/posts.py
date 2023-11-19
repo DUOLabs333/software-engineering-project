@@ -97,7 +97,31 @@ def createPost(type,data):
         session.commit(post)
         lock.release()
     return post.id
-    
+
+
+def createJobApplication(type,data):
+    jobApplication = JobApplication()
+
+    with Session(common.database) as session:
+        lock.acquire()
+
+        # Get next biggest id
+        jobApplication.id = (session.scalars(select(JobApplication.id).order_by(desc(JobApplication.id)).limit(1)).first() or 0) + 1
+        jobApplication.time_posted = int(time.time())
+
+        # Set required attributes
+        for attr in ["author", "questions"]:
+            setattr(jobApplication, attr, data[attr])
+
+        # Handle due_date (optional)
+        jobApplication.due_date = data.get("due_date", None)
+
+        session.add(jobApplication)
+        session.commit()
+        lock.release()
+
+    return jobApplication.id
+
 @app.route("/users/<int:uid>/posts/create")
 def post(uid):
     result={}
@@ -200,4 +224,17 @@ def post_delete(uid):
 
     
     
+@app.route("/users/<int:uid>/posts/jobs/create")
+def createJob(uid):
+    result={}
+    if not common.hasAccess(uid):
+        result["error"]="ACCESS_DENIED"
+        return result
     
+    data=request.args.get("data")
+    data=base64.b64decode(data)
+    data=json.decode(data)
+    
+    result["id"]=createJobApplication("JOB", data)
+    
+    return result  

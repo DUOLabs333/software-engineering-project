@@ -6,7 +6,7 @@ from flask import Flask, request
 
 database = create_engine("sqlite:///test_db.db")
 
-import users
+import utils.users
 
 app=Flask("backend_server")
 
