@@ -1,19 +1,12 @@
 import tables, common
 
 import braintree
-
-gateway = braintree.BraintreeGateway(
-  braintree.Configuration(
-    environment=braintree.Environment.Sandbox,
-    merchant_id='prvgcb88ztrbh7tm',
-    public_key='4hzdkcwrb5ktpdrz',
-    private_key='663c2fa5b4e345c5dba2e81e5541ba2f'
-  )
-)
-
+from braintree import Environment
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
+
+
 
 def GetBalance(id):
     with Session(common.database) as session:

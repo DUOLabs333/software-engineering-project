@@ -1,0 +1,48 @@
+from utils import common, tables
+from utils.common import app
+from utils import balance
+from utils import users
+import requests
+from flask import request
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+import multiprocessing
+import base64, json, time
+import braintree
+from routes import users
+import random
+
+lock=multiprocessing.Lock()
+
+gateway = braintree.BraintreeGateway(
+  braintree.Configuration(
+    environment=braintree.Environment.Sandbox,
+    merchant_id='prvgcb88ztrbh7tm',
+    public_key='4hzdkcwrb5ktpdrz',
+    private_key='663c2fa5b4e345c5dba2e81e5541ba2f'
+  )
+)
+
+@app.route("/users/<int:uid>/client_token", methods=["GET"])
+def client_token():
+  return gateway.client_token.generate()
+
+# pass client_token to the front-end
+def generate_token(uid):
+    client_token = gateway.client_token.generate({"customer_id": uid})
+
+@app.route("/users/<int:uid>/checkout", methods=["POST"])
+def create_purchase():
+  nonce_from_the_client = request.form["payment_method_nonce"]
+  # Use payment method nonce here...
+
+
+result = gateway.transaction.sale({
+        "amount": "10.00",
+        "payment_method_nonce": nonce_from_the_client, #work on nonce from the client 
+        "device_data": device_data_from_the_client, #work on device data 
+        "options": {
+        "submit_for_settlement": True
+        }
+    })
+    return result
