@@ -61,13 +61,13 @@ def create():
     
     user.creation_time=int(time.time())
     
-    user_type=data.get("user_type",users.SURFER)
+    user_type=data.get("user_type","SURFER")
     
-    if user_type not in [users.SURFER,users.ORDINARY,users.CORPORATE]:
+    if user_type not in ["SURFER","ORDINARY","CORPORATE"]:
         result["error"]="INVALID_USER_TYPE"
         return result
         
-    user.user_type=users.addType(0, user_type)
+    user.user_type=users.addType(0, getattr(users,user_type))
     
     for attr in ["following","blocked","liked_posts","disliked_posts"]:
         setattr(user,attr,common.toStringList([]))
