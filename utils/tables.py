@@ -26,6 +26,7 @@ class User(BaseTable):
     liked_posts: Mapped[str]
     disliked_posts: Mapped[str]
     inbox: Mapped[int]
+    profile: Mapped[int]
 
 
 class Post(BaseTable):

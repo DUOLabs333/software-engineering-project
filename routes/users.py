@@ -13,6 +13,7 @@ import multiprocessing
 import base64, json, time
 
 import random
+import string 
 
 lock=multiprocessing.Lock() #We lock not because of the IDs (autoincrement is enough), but because of the usernames
 
@@ -30,18 +31,27 @@ def create():
     result={}
     data=json.loads(base64.b64decode(request.get_data()).decode())
     
+    anonymous=data.get("anonymous",False)
+    
     lock.acquire()
-    if data["username"] is not None:
-        if checkIfUsernameExists(data["username"]):
-            lock.release()
-            result["error"]="USERNAME_EXISTS"
-            return result
-                
-    else:
+    
+    if anonymous:
         while True:
             data["username"]="anon_"+random.randint(0,10000000)
             if not checkIfUsernameExists(data["user"]):
                 break
+        data["password"]=''.join(random.choices(string.ascii_uppercase + string.digits, k=256))
+
+    if data["username"] is not None:
+        if checkIfUsernameExists(data["username"]):
+            lock.release()
+            result["error"]="USERNAME_EXISTS"
+            return result         
+    else:
+        if not anonymous:
+            result["error"]="USERNAME_NOT_GIVEN"
+            lock.release()
+            return result
         
         
     user=tables.User()
@@ -69,11 +79,14 @@ def create():
     
     with Session(common.database) as session:
         user.inbox=posts.createPost("INBOX",{"author": user.id, "text":"This is your inbox.","keywords":[]})
+        user.profile=posts.createPost("PROFILE",{"author": user.id, "text":"This is your profile.","keywords":[]})
         
         session.add(user)
         session.commit()
         lock.release()
         result["id"]=user.id
+        if anonymous:
+            result["password_hash"]=user.password_hash
     return result
 
 @app.route("/users/<int:uid>/info")
@@ -83,9 +96,11 @@ def info(uid):
         result["error"]="ACCESS_DENIED"
         return result
     
+    id=request.args.get("id",uid) #By default, use the current uid
+    
     with Session(common.database) as session:
         
-        user=users.getUser(uid)
+        user=users.getUser(id)
         if user is None:
             result["error"]="USER_NOT_FOUND"
             return result
@@ -100,7 +115,8 @@ def info(uid):
                 value=users.listTypes(value)
             elif col=="following":
                 value=common.fromStringList(value)
-                
+            elif col in ["inbox","blocked","id"] and id!=uid:
+                continue
             result["result"][col]=value
         
         return result
