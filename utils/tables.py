@@ -15,7 +15,7 @@ class User(BaseTable):
     __tablename__ = "USERS"
 
     id: Mapped[int] = mapped_column(primary_key=True,autoincrement=True)
-    username: Mapped[str] = mapped_column(primary_key=True)
+    username: Mapped[str]
     password_hash: Mapped[str]
     creation_time: Mapped[int]
     user_type: Mapped[int]
