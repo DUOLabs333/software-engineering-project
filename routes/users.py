@@ -3,7 +3,7 @@ from utils.common import app
 
 from utils import users, posts
 
-from flask import request
+from flask import request, url_for, jsonify
 
 from sqlalchemy import select
 from sqlalchemy import desc
@@ -13,6 +13,8 @@ import multiprocessing
 import base64, json, time
 
 import random
+from werkzeug.utils import secure_filename
+import os
 
 lock=multiprocessing.Lock() #We lock not because of the IDs (autoincrement is enough), but because of the usernames
 
@@ -29,7 +31,14 @@ def checkIfUsernameExists(username): #You must have the USERS database locked, a
 def create():
     result={}
     data=json.loads(base64.b64decode(request.get_data()).decode())
-    
+    #SAVE PROFILE PICTURE INTO STATIC/IMG DIRECTORY
+    upload_folder = app.root_path+ "/static/img"
+    uploaded_img = data['avatar']
+    img_name = secure_filename(uploaded_img.filename).lower()
+    uploaded_img.save(os.path.join(upload_folder, img_name))
+    avatar_img = url_for('static', filename='img/'+img_name)
+    print("IMAGE NAME: ", avatar_img)
+
     lock.acquire()
     if data["username"] is not None:
         if checkIfUsernameExists(data["username"]):
@@ -50,14 +59,14 @@ def create():
         setattr(user,attr,data[attr])
     
     user.creation_time=int(time.time())
-    
-    user_type=data.get("user_type",users.SURFER)
-    
-    if user_type not in [users.SURFER,users.ORDINARY,users.CORPORATE]:
-        result["error"]="INVALID_USER_TYPE"
-        return result
-        
-    user.user_type=users.addType(0, user_type)
+    userType = data['userType']
+    if userType == "ORDINARY":
+        userType = users.ORDINARY
+    elif userType == "CORPORATE":
+        userType = users.CORPORATE
+    else:
+        userType = users.SURFER
+    user.user_type=users.addType(0, userType)
     
     for attr in ["following","blocked","liked_posts","disliked_posts"]:
         setattr(user,attr,common.toStringList([]))
@@ -65,8 +74,8 @@ def create():
     for attr in ["tips"]:
         setattr(user,attr,0)
     
-    user.avatar=""
-    
+    user.avatar=avatar_img
+    user.bio = data['bio']
     with Session(common.database) as session:
         user.inbox=posts.createPost("INBOX",{"author": user.id, "text":"This is your inbox.","keywords":[]})
         
@@ -147,29 +156,4 @@ def delete(uid):
         session.commit()
         lock.release()
         return result
-
-@app.route("/users/signin")
-def signin():
-    result={}
-    data=json.loads(base64.b64decode(request.get_data()).decode())
-    
-    with Session(common.database) as session:
-        if "username" not in data:
-            result["error"]="USERNAME_NOT_GIVEN"
-            return result
-            
-        user=session.scalars(select(tables.User).where(tables.User.username==data["username"])).first()
-        
-        if user is None:
-            result["error"]="USER_NOT_FOUND"
-            return result
-        
-        if "password" not in data:
-            result["error"]="PASSWORD_NOT_GIVEN"
-            return result
-        
-        if data["password"]!=user.password_hash:
-            result["error"]="PASSWORD_INCORRECT"
-            return result
-        result["uid"]=user.id
-        return result                        
+                          

@@ -15,8 +15,9 @@ class User(BaseTable):
     __tablename__ = "USERS"
 
     id: Mapped[int] = mapped_column(primary_key=True,autoincrement=True)
-    username: Mapped[str] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column()
     password_hash: Mapped[str]
+    bio: Mapped[str]
     creation_time: Mapped[int]
     user_type: Mapped[int]
     following: Mapped[str]
@@ -69,7 +70,7 @@ class Balance(BaseTable):
     balance: Mapped[float]
 
 class Upload(BaseTable):
-    __table__name="UPLOADS"
+    __tablename__="UPLOADS"
     
     id: Mapped[int]= mapped_column(primary_key=True,autoincrement=True)
     path: Mapped[str]
