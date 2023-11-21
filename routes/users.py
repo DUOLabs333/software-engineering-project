@@ -78,6 +78,8 @@ def create():
     user.avatar=""
     
     with Session(common.database) as session:
+        user.inbox=0
+        user.profile=0
         
         session.add(user)
         session.commit()
