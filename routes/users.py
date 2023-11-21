@@ -78,11 +78,14 @@ def create():
     user.avatar=""
     
     with Session(common.database) as session:
-        user.inbox=posts.createPost("INBOX",{"author": user.id, "text":"This is your inbox.","keywords":[]})
-        user.profile=posts.createPost("PROFILE",{"author": user.id, "text":"This is your profile.","keywords":[]})
         
         session.add(user)
         session.commit()
+        
+        user.inbox=posts.createPost("INBOX",{"author": user.id, "text":"This is your inbox.","keywords":[]})
+        user.profile=posts.createPost("PROFILE",{"author": user.id, "text":"This is your profile.","keywords":[]})
+        session.commit()
+        
         lock.release()
         result["id"]=user.id
         if anonymous:
