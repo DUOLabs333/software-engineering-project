@@ -15,6 +15,7 @@ import base64, json, time
 import random
 from werkzeug.utils import secure_filename
 import os
+import string 
 
 lock=multiprocessing.Lock() #We lock not because of the IDs (autoincrement is enough), but because of the usernames
 
@@ -39,18 +40,28 @@ def create():
     avatar_img = url_for('static', filename='img/'+img_name)
     print("IMAGE NAME: ", avatar_img)
 
+    
+    anonymous=data.get("anonymous",False)
+    
     lock.acquire()
-    if data["username"] is not None:
-        if checkIfUsernameExists(data["username"]):
-            lock.release()
-            result["error"]="USERNAME_EXISTS"
-            return result
-                
-    else:
+    
+    if anonymous:
         while True:
             data["username"]="anon_"+random.randint(0,10000000)
             if not checkIfUsernameExists(data["user"]):
                 break
+        data["password"]=''.join(random.choices(string.ascii_uppercase + string.digits, k=256))
+
+    if data["username"] is not None:
+        if checkIfUsernameExists(data["username"]):
+            lock.release()
+            result["error"]="USERNAME_EXISTS"
+            return result         
+    else:
+        if not anonymous:
+            result["error"]="USERNAME_NOT_GIVEN"
+            lock.release()
+            return result
         
         
     user=tables.User()
@@ -59,14 +70,14 @@ def create():
         setattr(user,attr,data[attr])
     
     user.creation_time=int(time.time())
-    userType = data['userType']
-    if userType == "ORDINARY":
-        userType = users.ORDINARY
-    elif userType == "CORPORATE":
-        userType = users.CORPORATE
-    else:
-        userType = users.SURFER
-    user.user_type=users.addType(0, userType)
+    
+    user_type=data.get("user_type","SURFER")
+    
+    if user_type not in ["SURFER","ORDINARY","CORPORATE"]:
+        result["error"]="INVALID_USER_TYPE"
+        return result
+        
+    user.user_type=users.addType(0, getattr(users,user_type))
     
     for attr in ["following","blocked","liked_posts","disliked_posts"]:
         setattr(user,attr,common.toStringList([]))
@@ -78,11 +89,14 @@ def create():
     user.bio = data['bio']
     with Session(common.database) as session:
         user.inbox=posts.createPost("INBOX",{"author": user.id, "text":"This is your inbox.","keywords":[]})
+        user.profile=posts.createPost("PROFILE",{"author": user.id, "text":"This is your profile.","keywords":[]})
         
         session.add(user)
         session.commit()
         lock.release()
         result["id"]=user.id
+        if anonymous:
+            result["password_hash"]=user.password_hash
     return result
 
 @app.route("/users/<int:uid>/info")
@@ -92,9 +106,11 @@ def info(uid):
         result["error"]="ACCESS_DENIED"
         return result
     
+    id=request.args.get("id",uid) #By default, use the current uid
+    
     with Session(common.database) as session:
         
-        user=users.getUser(uid)
+        user=users.getUser(id)
         if user is None:
             result["error"]="USER_NOT_FOUND"
             return result
@@ -109,7 +125,8 @@ def info(uid):
                 value=users.listTypes(value)
             elif col=="following":
                 value=common.fromStringList(value)
-                
+            elif col in ["inbox","blocked","id"] and id!=uid:
+                continue
             result["result"][col]=value
         
         return result

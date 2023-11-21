@@ -33,7 +33,7 @@ def homepage(uid):
         following=user.following
         following=common.fromStringList(following)
         
-        query=select(tables.Post.id).where((tables.Post.author.in_(following)) & (tables.Post.id < before) & (tables.Post.author.not_in(blocked))).limit(limit).order_by(desc(tables.Post.id))
+        query=select(tables.Post.id).where((tables.Post.author.in_(following)) & (tables.Post.id < before) & (tables.Post.author.not_in(blocked)) & (tables.Post.type=="POST") ).limit(limit).order_by(desc(tables.Post.id))
         
         result["result"]=[]
         for row in session.scalars(query).all():
@@ -59,7 +59,7 @@ def trending(uid):
         blocked=common.fromStringList(blocked)
         
         while len(result["result"])<50:
-            query=select(tables.Post.id).where((tables.Post.id < before) & (tables.Post.author.not_in(blocked)) & (tables.Post.is_trending==True)).limit(limit-len(result["result"])).order_by(desc(tables.Post.trendy_ranking))
+            query=select(tables.Post.id).where((tables.Post.id < before) & (tables.Post.author.not_in(blocked)) & (tables.Post.is_trending==True) & (tables.Post.type=="POST")).limit(limit-len(result["result"])).order_by(desc(tables.Post.trendy_ranking))
             
             count=0
             for row in session.scalars(query).all():
