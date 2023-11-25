@@ -143,11 +143,17 @@ def delete(uid):
         return result
 
 @app.route("/users/<int:user_id>/add_type")
-def add_user_type(user_id):
+def add_user_type(uid):
     result = {}
-    current_user_id = common.getCurrentUserId()
+    current_user_id = session.get('user_id')
 
-    if not users.isSuperUser(current_user_id) or current_user_id == user_id:
+    current_user = users.getUser(current_user_id)
+    if current_user is None:
+        result["error"] = "USER_NOT_FOUND"
+        return result
+
+    # Check if the current user is a superuser and not trying to change their own type
+    if not users.hasType(current_user.user_type, users.SUPER) or current_user_id == uid:
         result["error"] = "ACCESS_DENIED"
         return result
 
@@ -157,7 +163,7 @@ def add_user_type(user_id):
         return result
 
     with Session(common.database) as session:
-        user = users.getUser(user_id, session)
+        user = users.getUser(uid)
         if user:
             user_type_constant = getattr(users, type_to_add)
             user.user_type = users.addType(user.user_type, user_type_constant)
@@ -171,11 +177,17 @@ def add_user_type(user_id):
     return result  
 
 @app.route("/users/<int:user_id>/remove_type")
-def remove_user_type(user_id):
+def remove_user_type(uid):
     result = {}
-    current_user_id = common.getCurrentUserId()
+    current_user_id = session.get('user_id')
 
-    if not users.isSuperUser(current_user_id) or current_user_id == user_id:
+    current_user = users.getUser(current_user_id)
+    if current_user is None:
+        result["error"] = "CURRENT_USER_NOT_FOUND"
+        return result
+
+    # Check if the current user is a superuser and not trying to change their own type
+    if not users.hasType(current_user.user_type, users.SUPER) or current_user_id == uid:
         result["error"] = "ACCESS_DENIED"
         return result
 
@@ -185,7 +197,7 @@ def remove_user_type(user_id):
         return result
 
     with Session(common.database) as session:
-        user = users.getUser(user_id, session)
+        user = users.getUser(uid)
         if user:
             user_type_constant = getattr(users, type_to_remove)
             user.user_type = users.removeType(user.user_type, user_type_constant)
