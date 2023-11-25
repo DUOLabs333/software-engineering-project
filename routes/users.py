@@ -252,3 +252,42 @@ def unfollow_user(uid, target_user_id):
 
         result["message"] = f"Successfully unfollowed user {target_user_id}"
         return result
+
+@app.route('/users/<int:uid>/suggest')
+def suggest_users(uid):
+    result = {}
+    with Session(common.database) as session:
+        # Retrieve the following list of the  current user
+        current_user = users.getUser(uid)
+        if current_user is None:
+            result["error"] = "USER_NOT_FOUND"
+            return result
+
+        already_following = set(common.fromStringList(current_user.following))
+
+        # all users' following lists
+        all_users = session.query(tables.User.id, tables.User.following).all()
+        
+        recommended_counts = {}
+
+        for user in all_users:
+            if user.id == uid or user.id in already_following:
+                continue  # Skip the current user and already followed users
+
+            #users that the current user's followings are following
+            followed_by_followings = set(common.fromStringList(user.following))
+
+            # Count number of followings in common
+            common_followings = followed_by_followings.intersection(already_following)
+
+            if common_followings:
+                # The more people in common, the higher the user will be recommended
+                recommended_counts[user.id] = len(common_followings)
+
+        sorted_recommendations = sorted(recommended_counts, key=recommended_counts.get, reverse=True)
+
+        # Limit the number of suggestions (ex, top 10)
+        top_suggestions = sorted_recommendations[:10]
+
+        result["suggestions"] = top_suggestions
+        return result
