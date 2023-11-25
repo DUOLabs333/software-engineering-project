@@ -194,3 +194,61 @@ def signin():
             return result
         result["uid"]=user.id
         return result                        
+
+@app.route('/users/<int:uid>/follow/<int:target_user_id>')
+def follow_user(uid, target_user_id):
+    result = {}
+    with Session(common.database) as session:
+        # Retrieve the user who wants to follow
+        user = users.getUser(uid)
+        if user is None:
+            result["error"] = "USER_NOT_FOUND"
+            return result
+
+        # Retrieve the target user
+        target_user = users.getUser(target_user_id)
+        if target_user is None:
+            result["error"] = "TARGET_USER_NOT_FOUND"
+            return result
+
+        # Check if already following
+        following_list = common.fromStringList(user.following)
+        if str(target_user_id) in following_list:
+            result["message"] = "ALREADY_FOLLOWING"
+            return result
+
+        # Update the following list
+        following_list.append(str(target_user_id))  # Ensure it is stored as a string
+        user.following = common.toStringList(following_list)
+        
+        # Commit the changes to the database
+        session.commit()
+
+        result["message"] = f"Successfully followed user {target_user_id}"
+        return result
+
+@app.route('/users/<int:uid>/unfollow/<int:target_user_id>')
+def unfollow_user(uid, target_user_id):
+    result = {}
+    with Session(common.database) as session:
+        # Retrieve the user who wants to unfollow
+        user = users.getUser(uid)
+        if user is None:
+            result["error"] = "USER_NOT_FOUND"
+            return result
+
+        # Check if the user is currently following the target user
+        following_list = common.fromStringList(user.following)
+        if str(target_user_id) not in following_list:
+            result["message"] = "NOT_FOLLOWING_USER"
+            return result
+
+        # Remove the target user from the following list
+        following_list.remove(str(target_user_id))
+        user.following = common.toStringList(following_list)
+
+        # Commit the changes to the database
+        session.commit()
+
+        result["message"] = f"Successfully unfollowed user {target_user_id}"
+        return result
