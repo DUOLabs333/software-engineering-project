@@ -7,6 +7,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__f
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from flask import Flask, request
+from flask_cors import CORS
 
 database = create_engine("sqlite:///test_db.db")
 
@@ -14,6 +15,7 @@ import utils.users
 
 app=Flask("backend_server")
 
+CORS(app)
 def fromStringList(string):
     return string.removeprefix(" ").removesuffix(" ").split(" ")
 
