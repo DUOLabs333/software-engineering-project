@@ -15,16 +15,17 @@ from pathlib import Path
 lock=multiprocessing.Lock() #Not enough to use autoincrement ---- autoincrement doesn't neccessarily create monotonically increasing IDs, only unique ones. However, we need it in a specific order.
 
 
-@app.route("/users/<int:uid>/homepage")
-def homepage(uid):
+@app.route("/users/homepage")
+def homepage():
     result={}
-    if not common.hasAccess(uid):
+    if not common.hasAccess():
         result["error"]="ACCESS_DENIED"
         return result
     
-    limit=request.args.get("limit",50)
-    before=request.args.get("before",float("inf"))
+    limit=request.json.get("limit",50)
+    before=request.json.get("before",float("inf"))
     
+    uid=request.json["uid"]
     user=users.getUser(uid)
     with Session(common.database) as session:
         blocked=user.blocked
@@ -42,16 +43,17 @@ def homepage(uid):
         return result
         
             
-@app.route("/users/<int:uid>/trending")
-def trending(uid):
+@app.route("/users/trending")
+def trending():
     result={}
-    if not common.hasAccess(uid):
+    if not common.hasAccess():
         result["error"]="ACCESS_DENIED"
         return result
     
-    limit=request.args.get("limit",50)
-    before=request.args.get("before",float("inf"))
+    limit=request.json.get("limit",50)
+    before=request.json.get("before",float("inf"))
     
+    uid=request.json["uid"]
     with Session(common.database) as session:
         result["result"]=[]
         
@@ -72,18 +74,19 @@ def trending(uid):
         return result
 
 
-@app.route("/users/<int:uid>/posts/create")
-def post(uid):
+@app.route("/users/posts/create")
+def post():
     result={}
-    if not common.hasAccess(uid):
+    if not common.hasAccess():
         result["error"]="ACCESS_DENIED"
         return result
     
+    uid=request.json["uid"]
     user=users.getUser(uid)
     if not common.hasType(user.user_type,users.ORDINARY):
         result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
-    data=request.args.get("data")
+    data=request.json.get("data")
     data=base64.b64decode(data)
     data=json.decode(data)
     
@@ -91,15 +94,14 @@ def post(uid):
     
     return result
 
-@app.route("/users/<int:uid>/posts/info")
-def post_info(uid):
+@app.route("/users/posts/info")
+def post_info():
     result={}
-    if not common.hasAccess(uid):
+    if not common.hasAccess():
         result["error"]="ACCESS_DENIED"
         return result
     
-    post=posts.getPost(requests.args.get("id"))
-    
+    post=posts.getPost(request.json.get("id"))
     if post is None:
         result["error"]="POST_NOT_FOUND"
         return result
@@ -115,23 +117,23 @@ def post_info(uid):
         result["result"][col]=value
     return result
 
-@app.route("/users/<int:uid>/posts/edit")
-def post_edit(uid):
+@app.route("/users/posts/edit")
+def post_edit():
     result={}
-    if not common.hasAccess(uid):
+    if not common.hasAccess():
         result["error"]="ACCESS_DENIED"
         return result
     
+    uid=request.json["uid"]
     user=users.getUser(uid)
     if not common.hasType(user.user_type,users.ORDINARY):
         result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
         
     with Session(common.database) as session:
-        data=json.decode(base64.decode(requests.args.get("data")).decode())
-        post=posts.getPost(data["id"])
+        post=posts.getPost(request.json["id"])
         for key in data:
-            value=data[key]
+            value=request.json[key]
             
             if key=="id":
                 continue
@@ -142,22 +144,23 @@ def post_edit(uid):
             
     return result
     
-@app.route("/users/<int:uid>/posts/delete")
-def post_delete(uid):
+@app.route("/users/posts/delete")
+def post_delete():
     result={}
-    if not common.hasAccess(uid):
+    if not common.hasAccess():
         result["error"]="ACCESS_DENIED"
         return result
     
     
     lock.acquire()
     
-    post_id=request.args.get("id",type=int)
+    post_id=request.json.get("id",type=int)
     
     with Session(common.database) as session:
         post=posts.getPost(post_id)
         can_delete=False
         
+        uid=request.json["uid"]
         user=users.getUser(uid)
         
         if post.type=="INBOX":
@@ -184,20 +187,21 @@ def post_delete(uid):
 random_string = lambda N: ''.join(random.choices(string.ascii_uppercase + string.digits, k=N))
 
 upload_lock=multiprocessing.Lock()
-@app.route("/users/<int:uid>/upload")
-def upload(uid):
+@app.route("/users/upload")
+def upload():
     result={}
-    if not common.hasAccess(uid):
+    if not common.hasAccess():
         result["error"]="ACCESS_DENIED"
         return result
-        
+    
+    uid=request.json["uid"]
     user=users.getUser(uid)
     if not common.hasType(user.user_type,users.ORDINARY):
         result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
         
-    data=request.args.get("data")  
-    type=request.args.get("type")
+    data=request.json.get("data")  
+    type=request.json.get("type")
     
     data_size=(len(data) * 3) / 4 - data.count('=', -2)
     
@@ -230,8 +234,10 @@ def upload(uid):
         result["url"]=f"images/{upload.id}"
         return result
 
-@app.route("/images/<int:id>")
-def image(id):
+@app.route("/images/id")
+def image():
+    
+    id=request.json["id"]
     with Session(common.database) as session:
         path, type =session.scalars(select(tables.Upload.path, tables.Upload.type).where(tables.Upload.id==id)).first()
         path=path.replace("/",os.path.sep)

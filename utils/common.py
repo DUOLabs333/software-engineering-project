@@ -20,8 +20,9 @@ def fromStringList(string):
 def toStringList(lst):
     return " "+(" ".join(lst))+" "
 
-def hasAccess(uid):
-    hash=request.get_data(as_text=True)
+def hasAccess():
+    uid=request.json["uid"]
+    hash=request.json["key"]
     
     user=users.getUser(uid)
     return (user is not None) and (hash==user.password_hash)

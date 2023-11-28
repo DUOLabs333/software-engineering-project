@@ -70,7 +70,7 @@ class Balance(BaseTable):
     balance: Mapped[float]
 
 class Upload(BaseTable):
-    __table__name="UPLOADS"
+    __tablename__="UPLOADS"
     
     id: Mapped[int]= mapped_column(primary_key=True,autoincrement=True)
     path: Mapped[str]

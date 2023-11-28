@@ -29,21 +29,20 @@ def checkIfUsernameExists(username): #You must have the USERS database locked, a
 @app.route("/users/create")
 def create():
     result={}
-    data=json.loads(base64.b64decode(request.get_data()).decode())
     
-    anonymous=data.get("anonymous",False)
+    anonymous=request.json.get("anonymous",False)
     
     lock.acquire()
     
     if anonymous:
         while True:
-            data["username"]="anon_"+random.randint(0,10000000)
-            if not checkIfUsernameExists(data["user"]):
+            request.json["username"]="anon_"+random.randint(0,10000000)
+            if not checkIfUsernameExists(request.json["user"]):
                 break
         data["password"]=''.join(random.choices(string.ascii_uppercase + string.digits, k=256))
 
     if data["username"] is not None:
-        if checkIfUsernameExists(data["username"]):
+        if checkIfUsernameExists(request.json["username"]):
             lock.release()
             result["error"]="USERNAME_EXISTS"
             return result         
@@ -57,11 +56,11 @@ def create():
     user=tables.User()
     
     for attr in ["username","password_hash"]:
-        setattr(user,attr,data[attr])
+        setattr(user,attr,request.json[attr])
     
     user.creation_time=int(time.time())
     
-    user_type=data.get("user_type","SURFER")
+    user_type=request.json.get("user_type","SURFER")
     
     if user_type not in ["SURFER","ORDINARY","CORPORATE"]:
         result["error"]="INVALID_USER_TYPE"
@@ -78,8 +77,8 @@ def create():
     user.avatar=""
     
     with Session(common.database) as session:
-        user.inbox=0
-        user.profile=0
+        user.inbox=0 #Placeholder, so we can add it without it failing the 'NOT NULL' constraint
+        user.profile=0 #See above
         
         session.add(user)
         session.commit()
@@ -94,14 +93,14 @@ def create():
             result["password_hash"]=user.password_hash
     return result
 
-@app.route("/users/<int:uid>/info")
-def info(uid):
+@app.route("/users/info")
+def info():
     result={}
-    if not common.hasAccess(uid):
+    if not common.hasAccess():
         result["error"]="ACCESS_DENIED"
         return result
     
-    id=request.args.get("id",uid) #By default, use the current uid
+    id=request.json.get("id",uid) #By default, use the current uid
     
     with Session(common.database) as session:
         
@@ -126,15 +125,15 @@ def info(uid):
         
         return result
         
-@app.route("/users/<int:uid>/rename")
-def rename(uid):
+@app.route("/users/rename")
+def rename():
     result={}
-    if not common.hasAccess(uid):
+    if not common.hasAccess():
         result["error"]="ACCESS_DENIED"
         return result
     
-    new_name=request.args.get("new_name")
-    
+    new_name=request.json.get("new_name")
+    uid=request.json["uid"]
     with Session(common.database) as session:
         lock.acquire()
         user=users.getUser(uid)
@@ -152,16 +151,17 @@ def rename(uid):
             lock.release()
             return result
             
-@app.route("/users/<int:uid>/delete")
-def delete(uid):
+@app.route("/users/delete")
+def delete():
     result={}
-    if not common.hasAccess(uid):
+    if not common.hasAccess():
         result["error"]="ACCESS_DENIED"
         return result
     
     with Session(common.database) as session:
         lock.acquire()
         
+        uid=request.json["uid"]
         user=users.getUser(uid)
         
         session.delete(user)
@@ -172,25 +172,29 @@ def delete(uid):
 @app.route("/users/signin")
 def signin():
     result={}
-    data=json.loads(base64.b64decode(request.get_data()).decode())
     
     with Session(common.database) as session:
-        if "username" not in data:
+        
+        username=request.json.get("username",None)
+        password=request.json.get("password",None)
+        
+        if username is None:
             result["error"]="USERNAME_NOT_GIVEN"
             return result
             
-        user=session.scalars(select(tables.User).where(tables.User.username==data["username"])).first()
+        user=session.scalars(select(tables.User).where(tables.User.username==request.json["username"])).first()
         
         if user is None:
             result["error"]="USER_NOT_FOUND"
             return result
         
-        if "password" not in data:
+        if password is None:
             result["error"]="PASSWORD_NOT_GIVEN"
             return result
         
-        if data["password"]!=user.password_hash:
+        if password!=user.password_hash:
             result["error"]="PASSWORD_INCORRECT"
             return result
+            
         result["uid"]=user.id
         return result                        
