@@ -26,7 +26,7 @@ def checkIfUsernameExists(username): #You must have the USERS database locked, a
 
 #CRUD: Create, Read, Update, Delete
 
-@app.route("/users/create")
+@app.route("/users/create", methods = ['POST'])
 def create():
     result={}
     
@@ -94,7 +94,7 @@ def create():
             result["password_hash"]=user.password_hash
     return result
 
-@app.route("/users/info")
+@app.route("/users/info", methods = ['POST'])
 def info():
     result={}
     if not common.hasAccess():
@@ -126,7 +126,7 @@ def info():
         
         return result
         
-@app.route("/users/rename")
+@app.route("/users/rename", methods = ['POST'])
 def rename():
     result={}
     if not common.hasAccess():
@@ -152,7 +152,7 @@ def rename():
             lock.release()
             return result
             
-@app.route("/users/delete")
+@app.route("/users/delete", methods = ['POST'])
 def delete():
     result={}
     if not common.hasAccess():
@@ -170,7 +170,7 @@ def delete():
         lock.release()
         return result
 
-@app.route("/users/signin")
+@app.route("/users/signin", methods = ['POST'])
 def signin():
     result={}
     

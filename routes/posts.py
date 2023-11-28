@@ -15,7 +15,7 @@ from pathlib import Path
 lock=multiprocessing.Lock() #Not enough to use autoincrement ---- autoincrement doesn't neccessarily create monotonically increasing IDs, only unique ones. However, we need it in a specific order.
 
 
-@app.route("/users/homepage")
+@app.route("/users/homepage", methods = ['POST'])
 def homepage():
     result={}
     if not common.hasAccess():
@@ -43,7 +43,7 @@ def homepage():
         return result
         
             
-@app.route("/users/trending")
+@app.route("/users/trending", methods = ['POST'])
 def trending():
     result={}
     if not common.hasAccess():
@@ -74,7 +74,7 @@ def trending():
         return result
 
 
-@app.route("/users/posts/create")
+@app.route("/users/posts/create", methods = ['POST'])
 def post():
     result={}
     if not common.hasAccess():
@@ -94,7 +94,7 @@ def post():
     
     return result
 
-@app.route("/users/posts/info")
+@app.route("/users/posts/info", methods = ['POST'])
 def post_info():
     result={}
     if not common.hasAccess():
@@ -117,7 +117,7 @@ def post_info():
         result["result"][col]=value
     return result
 
-@app.route("/users/posts/edit")
+@app.route("/users/posts/edit", methods = ['POST'])
 def post_edit():
     result={}
     if not common.hasAccess():
@@ -144,7 +144,7 @@ def post_edit():
             
     return result
     
-@app.route("/users/posts/delete")
+@app.route("/users/posts/delete", methods = ['POST'])
 def post_delete():
     result={}
     if not common.hasAccess():
@@ -187,7 +187,7 @@ def post_delete():
 random_string = lambda N: ''.join(random.choices(string.ascii_uppercase + string.digits, k=N))
 
 upload_lock=multiprocessing.Lock()
-@app.route("/users/upload")
+@app.route("/users/upload", methods = ['POST'])
 def upload():
     result={}
     if not common.hasAccess():
@@ -234,7 +234,7 @@ def upload():
         result["url"]=f"images/{upload.id}"
         return result
 
-@app.route("/images/id")
+@app.route("/images/id", methods = ['POST'])
 def image():
     
     id=request.json["id"]
