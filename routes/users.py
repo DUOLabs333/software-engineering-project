@@ -39,10 +39,11 @@ def create():
             request.json["username"]="anon_"+random.randint(0,10000000)
             if not checkIfUsernameExists(request.json["user"]):
                 break
-        data["password"]=''.join(random.choices(string.ascii_uppercase + string.digits, k=256))
-
-    if data["username"] is not None:
-        if checkIfUsernameExists(request.json["username"]):
+        result["password"]=''.join(random.choices(string.ascii_uppercase + string.digits, k=256))
+    username=request.json.get("username",None)
+    
+    if username is not None:
+        if checkIfUsernameExists(username):
             lock.release()
             result["error"]="USERNAME_EXISTS"
             return result         
