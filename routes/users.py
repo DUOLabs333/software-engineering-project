@@ -177,7 +177,7 @@ def signin():
     with Session(common.database) as session:
         
         username=request.json.get("username",None)
-        password=request.json.get("password",None)
+        password=request.json.get("password_hash",None)
         
         if username is None:
             result["error"]="USERNAME_NOT_GIVEN"
