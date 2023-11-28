@@ -205,8 +205,8 @@ def like_post(uid, pid):
         return result
 
     user = users.getUser(uid)
-    if not user or not users.hasType(user.user_type, users.ORDINARY):
-        result["error"] = "ACCESS_DENIED_OR_NOT_ORDINARY_USER"
+    if not users.hasType(user.user_type, users.ORDINARY):
+        result["error"] = "NOT_ORDINARY_USER"
         return result
 
     with Session(common.database) as session:
@@ -243,8 +243,8 @@ def dislike_post(uid, pid):
         return result
 
     user = users.getUser(uid)
-    if not user or not users.hasType(user.user_type, users.ORDINARY):
-        result["error"] = "ACCESS_DENIED_OR_NOT_ORDINARY_USER"
+    if not users.hasType(user.user_type, users.ORDINARY):
+        result["error"] = "NOT_ORDINARY_USER"
         return result
 
     with Session(common.database) as session:
