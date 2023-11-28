@@ -86,11 +86,8 @@ def post():
     if not common.hasType(user.user_type,users.ORDINARY):
         result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
-    data=request.json.get("data")
-    data=base64.b64decode(data)
-    data=json.decode(data)
     
-    result["id"]=posts.createPost("POST", data)
+    result["id"]=posts.createPost("POST", request.json)
     
     return result
 
@@ -132,10 +129,10 @@ def post_edit():
         
     with Session(common.database) as session:
         post=posts.getPost(request.json["id"])
-        for key in data:
+        for key in request.json:
             value=request.json[key]
             
-            if key=="id":
+            if (not hasattr(post, key)) or key=="id":
                 continue
             elif key=="keywords":
                 value=common.toStringList(value)
