@@ -1,4 +1,4 @@
-from utils import common, tables, users
+from utils import common, tables, users, balance
 
 from utils import posts
 
@@ -8,7 +8,7 @@ from flask import request, send_file
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-import base64, json, time, os, random
+import base64, json, time, os, random, re
 import multiprocessing
 from pathlib import Path
 
@@ -56,7 +56,7 @@ def trending():
         blocked=common.fromStringList(blocked)
         
         while len(result["result"])<50:
-            query=select(tables.Post.id).where((tables.Post.id < before) & (tables.Post.author.not_in(blocked)) & (tables.Post.is_trending==True) & (tables.Post.type=="POST")).limit(limit-len(result["result"])).order_by(desc(tables.Post.trendy_ranking))
+            query=select(tables.Post.id).where((tables.Post.id < before) & (tables.Post.author.not_in(blocked)) & (tables.Post.is_trending==True) ).limit(limit-len(result["result"])).order_by(desc(tables.Post.trendy_ranking))
             
             count=0
             for row in session.scalars(query).all():
@@ -80,8 +80,55 @@ def post():
         result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
     
-    result["id"]=posts.createPost("POST", request.json)
+    #Check for taboo and replace with asterisks --- use regex, with \b for word boundary. case insensitive.
+    #Makr /top3posts and /top3users --- both unauthenticated.
+    #If word count is over, make post then bill, before returning
+    #Load list first into set
     
+    data=request.json
+    
+    taboo_word_count=0
+    words_in_post=re.findall(r"(?!'.*')\b[\w']+\b",data["text"])
+    extra_words=max(len(words_in_post)-20,0)
+    
+    cost=0
+    mask=user.user_type
+    if users.hasType(mask,users.CORPORATE):
+        cost=1*words_in_post #$1 for every word
+    elif users.hasType(mask,users.ORDINARY) or users.hasType(mask,users.TRENDY):
+        cost=0.1*extra_words #$0.10 for every word over 20 words. Also need to check for images.
+    else:
+        result["error"]="INSUFFICIENT_PERMISSION" #Can't post without being at least OU
+        return result
+         
+    taboo_list=open("taboo_list.txt","r+").read().splitlines()
+    taboo_list=[word.strip() for word in taboo_list]
+    taboo_list=set(taboo_list)
+    
+    for word in words_in_post:
+        if word in taboo_list:
+            data["text"]=re.sub(rf"(?!'.*')\b[{re.escape(word)}']+\b","****",data["text"],1) #Only replace the instance that we care about
+            taboo_word_count+=1
+        if taboo_word_count>2:
+            #Warn --- set that up
+            result["error"]="TOO_MANY_TABOOS"
+            return
+    
+    if len(data["keywords"])>3:
+        result["error"]="TOO_MANY_KEYWORDS"
+        return
+        
+    result["id"]=posts.createPost("POST", data)
+    
+    if cost>0: #If you can't pay, posts get deleted
+        balance=balance.RemoveFromBalance(uid,cost)
+        if balance==-1:
+            result["error"]="NOT_ENOUGH_MONEY"
+            with Session(common.database) as session:
+                post=posts.getPost(result["id"],session)
+                session.delete(post)
+                session.commit()
+            return
     return result
 
 @app.route("/users/posts/info", methods = ['POST'])
@@ -89,20 +136,23 @@ def post():
 def post_info():
     result={}
     
-    post=posts.getPost(request.json.get("id"))
-    if post is None:
-        result["error"]="POST_NOT_FOUND"
-        return result
+    with Session(common.database) as session:
+        post=posts.getPost(request.json.get("id"),session=session)
+        posts.views+=1 #Someone looked at it
+        session.commit()
         
-    result["result"]={}
-    
-    for col in post.__mapper__.attrs.keys():
-        value=getattr(post,col)
-        
-        if col=="keywords":
-            value=common.fromStringList(value)
+        if post is None:
+            result["error"]="POST_NOT_FOUND"
+            return result
             
-        result["result"][col]=value
+        for col in post.__mapper__.attrs.keys():
+            value=getattr(post,col)
+            
+            if col=="keywords":
+                value=common.fromStringList(value)
+                
+            result[col]=value
+        
     return result
 
 @app.route("/users/posts/edit", methods = ['POST'])
@@ -124,6 +174,9 @@ def post_edit():
             if (not hasattr(post, key)) or key=="id":
                 continue
             elif key=="keywords":
+                if len(value)>3:
+                    result["error"]="TOO_MANY_KEYWORDS"
+                    return
                 value=common.toStringList(value)
                 
             setattr(post,key,value)

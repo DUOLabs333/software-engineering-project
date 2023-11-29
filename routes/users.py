@@ -39,19 +39,13 @@ def create():
             if not checkIfUsernameExists(request.json["user"]):
                 break
         result["password"]=''.join(random.choices(string.ascii_uppercase + string.digits, k=256))
-    username=request.json.get("username",None)
     
-    if username is not None:
-        if checkIfUsernameExists(username):
-            lock.release()
-            result["error"]="USERNAME_EXISTS"
-            return result         
-    else:
-        if not anonymous:
-            result["error"]="USERNAME_NOT_GIVEN"
-            lock.release()
-            return result
-        
+    username=request.json["username"]
+    
+    if checkIfUsernameExists(username):
+        lock.release()
+        result["error"]="USERNAME_EXISTS"
+        return result
         
     user=tables.User()
     
@@ -124,7 +118,7 @@ def info():
         
 @app.route("/users/modify", methods = ['POST'])
 @common.authenticate
-def rename():
+def modify():
     result={}
     username=request.json.get("username",None)
     password=request.json.get("password_hash",None)
@@ -154,13 +148,10 @@ def rename():
 
 @app.route("/users/block", methods = ['POST'])
 @common.authenticate
-def rename():
+def block():
     result={}
 
-    blocked_id=request.json.get("blocked_id",None)
-    if blocked_id is None:
-        result["error"]="NO_ID_SPECIFIED"
-        return result
+    blocked_id=request.json["blocked_id"]
         
     uid=request.json["uid"]
     with Session(common.database) as session:
@@ -189,22 +180,13 @@ def delete():
 def signin():
     result={}
     with Session(common.database) as session:
-        
-        username=request.json.get("username",None)
-        password=request.json.get("password_hash",None)
-        
-        if username is None:
-            result["error"]="USERNAME_NOT_GIVEN"
-            return result
+        username=request.json["username"]
+        password=request.json["password_hash"]
             
         user=session.scalars(select(tables.User).where(tables.User.username==request.json["username"])).first()
         
         if user is None:
             result["error"]="USER_NOT_FOUND"
-            return result
-        
-        if password is None:
-            result["error"]="PASSWORD_NOT_GIVEN"
             return result
         
         if password!=user.password_hash:

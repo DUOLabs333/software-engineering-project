@@ -35,10 +35,18 @@ def checkTrendyStatus(id): #Calculates if trendy, adds/removes usertype from mas
         
         return isTrendy
     
-def getPost(post_id):
-    with Session(common.database) as session:
-        query=select(tables.Post).where(tables.Post.id==post_id)
-        return session.scalars(query).first()
+def getPost(post_id,session=None):
+    session_exists=True
+    if session is None:
+        session_exists=False #Have to make one
+        session=Session(common.database,expire_on_commit=False) #Can be used outside session
+        
+    query=select(tables.Post).where(tables.Post.id==post_id)
+    result=session.scalars(query).first()
+    
+    if session_exists:
+        session.close() 
+    return result
 
 def createPost(type,data):
     post=tables.Post()

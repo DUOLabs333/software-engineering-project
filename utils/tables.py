@@ -47,7 +47,7 @@ class Post(BaseTable):
     
     @hybrid_property
     def is_trending(self):
-        self.views>10 & (self.views>=3*self.dislikes)
+        self.views>10 & (self.views>=3*self.dislikes) & (self.post_type=="POST")
     
     @hybrid_property
     def trending_ranking(self):

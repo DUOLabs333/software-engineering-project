@@ -16,6 +16,8 @@ import utils.users
 app=Flask("backend_server")
 
 CORS(app)
+
+import functools
 def fromStringList(string):
     return string.removeprefix(" ").removesuffix(" ").split(" ")
 
@@ -28,6 +30,7 @@ def appendToStringList(lst,val):
     return toStringList(lst)
  
 def authenticate(func):
+   @functools.wraps(func)
    def wrapper(*args,**kwargs):
        uid=request.json["uid"]
        hash=request.json["key"]
