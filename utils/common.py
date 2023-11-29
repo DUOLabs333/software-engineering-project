@@ -26,10 +26,19 @@ def appendToStringList(lst,val):
     lst=fromStringList(lst)
     lst.append(str(val))
     return toStringList(lst)
-    
-def hasAccess():
-    uid=request.json["uid"]
-    hash=request.json["key"]
-    
-    user=users.getUser(uid)
-    return (user is not None) and (hash==user.password_hash)
+ 
+def authenticate(func):
+   def wrapper(*args,**kwargs):
+       uid=request.json["uid"]
+       hash=request.json["key"]
+       
+       user=users.getUser(uid)
+       
+       has_access=(user is not None) and (hash==user.password_hash)
+       
+       if not has_access:
+           result={"error":"ACCESS_DENIED"}
+           return result
+       else:
+           return func(*args,**kwargs)
+   return wrapper

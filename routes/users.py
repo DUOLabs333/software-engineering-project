@@ -29,7 +29,6 @@ def checkIfUsernameExists(username): #You must have the USERS database locked, a
 @app.route("/users/create", methods = ['POST'])
 def create():
     result={}
-    
     anonymous=request.json.get("anonymous",False)
     
     lock.acquire()
@@ -95,12 +94,9 @@ def create():
     return result
 
 @app.route("/users/info", methods = ['POST'])
+@common.authenticate
 def info():
     result={}
-    if not common.hasAccess():
-        result["error"]="ACCESS_DENIED"
-        return result
-    
     id=request.json.get("id",uid) #By default, use the current uid
     
     with Session(common.database) as session:
@@ -127,12 +123,9 @@ def info():
         return result
         
 @app.route("/users/modify", methods = ['POST'])
+@common.authenticate
 def rename():
     result={}
-    if not common.hasAccess():
-        result["error"]="ACCESS_DENIED"
-        return result
-    
     username=request.json.get("username",None)
     password=request.json.get("password_hash",None)
     uid=request.json["uid"]
@@ -160,12 +153,10 @@ def rename():
         return result
 
 @app.route("/users/block", methods = ['POST'])
+@common.authenticate
 def rename():
     result={}
-    if not common.hasAccess():
-        result["error"]="ACCESS_DENIED"
-        return result
-    
+
     blocked_id=request.json.get("blocked_id",None)
     if blocked_id is None:
         result["error"]="NO_ID_SPECIFIED"
@@ -180,12 +171,9 @@ def rename():
     return result
     
 @app.route("/users/delete", methods = ['POST'])
+@common.authenticate
 def delete():
     result={}
-    if not common.hasAccess():
-        result["error"]="ACCESS_DENIED"
-        return result
-    
     with Session(common.database) as session:
         lock.acquire()
         
@@ -200,7 +188,6 @@ def delete():
 @app.route("/users/signin", methods = ['POST'])
 def signin():
     result={}
-    
     with Session(common.database) as session:
         
         username=request.json.get("username",None)

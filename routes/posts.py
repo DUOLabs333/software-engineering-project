@@ -16,12 +16,9 @@ lock=multiprocessing.Lock() #Not enough to use autoincrement ---- autoincrement 
 
 
 @app.route("/users/homepage", methods = ['POST'])
+@common.authenticate
 def homepage():
     result={}
-    if not common.hasAccess():
-        result["error"]="ACCESS_DENIED"
-        return result
-    
     limit=request.json.get("limit",50)
     before=request.json.get("before",float("inf"))
     
@@ -44,11 +41,9 @@ def homepage():
         
             
 @app.route("/users/trending", methods = ['POST'])
+@common.authenticate
 def trending():
     result={}
-    if not common.hasAccess():
-        result["error"]="ACCESS_DENIED"
-        return result
     
     limit=request.json.get("limit",50)
     before=request.json.get("before",float("inf"))
@@ -75,11 +70,9 @@ def trending():
 
 
 @app.route("/users/posts/create", methods = ['POST'])
+@common.authenticate
 def post():
     result={}
-    if not common.hasAccess():
-        result["error"]="ACCESS_DENIED"
-        return result
     
     uid=request.json["uid"]
     user=users.getUser(uid)
@@ -92,11 +85,9 @@ def post():
     return result
 
 @app.route("/users/posts/info", methods = ['POST'])
+@common.authenticate
 def post_info():
     result={}
-    if not common.hasAccess():
-        result["error"]="ACCESS_DENIED"
-        return result
     
     post=posts.getPost(request.json.get("id"))
     if post is None:
@@ -115,11 +106,9 @@ def post_info():
     return result
 
 @app.route("/users/posts/edit", methods = ['POST'])
+@common.authenticate
 def post_edit():
     result={}
-    if not common.hasAccess():
-        result["error"]="ACCESS_DENIED"
-        return result
     
     uid=request.json["uid"]
     user=users.getUser(uid)
@@ -142,12 +131,9 @@ def post_edit():
     return result
     
 @app.route("/users/posts/delete", methods = ['POST'])
+@common.authenticate
 def post_delete():
     result={}
-    if not common.hasAccess():
-        result["error"]="ACCESS_DENIED"
-        return result
-    
     
     lock.acquire()
     
@@ -184,13 +170,11 @@ def post_delete():
 random_string = lambda N: ''.join(random.choices(string.ascii_uppercase + string.digits, k=N))
 
 upload_lock=multiprocessing.Lock()
+
 @app.route("/users/upload", methods = ['POST'])
+@common.authenticate
 def upload():
     result={}
-    if not common.hasAccess():
-        result["error"]="ACCESS_DENIED"
-        return result
-    
     uid=request.json["uid"]
     user=users.getUser(uid)
     if not common.hasType(user.user_type,users.ORDINARY):
