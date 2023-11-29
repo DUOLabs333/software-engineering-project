@@ -28,6 +28,11 @@ class User(BaseTable):
     inbox: Mapped[int]
     profile: Mapped[int]
 
+    def is_trendy(self):
+        #Define conditions, so you can check whether it should be trnedy at evey sub/unsub, view like/dislike, etc by someone else. If so, add TU to type. If not, remove TU. Also, use select as needed. Check for warnings (must have <=3 
+        self.views>10 & (self.views>=3*self.dislikes) & (self.post_type=="POST")
+    
+    
 
 class Post(BaseTable):
     __tablename__ = "POSTS"
