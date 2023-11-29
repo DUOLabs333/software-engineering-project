@@ -195,15 +195,20 @@ def signin():
         result["uid"]=user.id
         return result                        
 
-@app.route('/users/<int:uid>/follow/<int:target_user_id>')
-def follow_user(uid, target_user_id):
+@app.route('/users/<int:uid>/follow')
+def follow_user(uid):
     result = {}
+
+    # Authenticate the user 
+    if not common.hasAccess(uid):
+        result["error"] = "ACCESS_DENIED"
+        return result
+        
+    target_user_id = request.json.get("target_user_id")
+
     with Session(common.database) as session:
         # Retrieve the user who wants to follow
         user = users.getUser(uid)
-        if user is None:
-            result["error"] = "USER_NOT_FOUND"
-            return result
 
         # Retrieve the target user
         target_user = users.getUser(target_user_id)
@@ -224,18 +229,22 @@ def follow_user(uid, target_user_id):
         # Commit the changes to the database
         session.commit()
 
-        result["message"] = f"Successfully followed user {target_user_id}"
         return result
 
-@app.route('/users/<int:uid>/unfollow/<int:target_user_id>')
-def unfollow_user(uid, target_user_id):
+@app.route('/users/<int:uid>/unfollow')
+def unfollow_user(uid):
     result = {}
+
+    # Authenticate the user
+    if not common.hasAccess(uid):
+        result["error"] = "ACCESS_DENIED"
+        return result
+
+    target_user_id = request.json.get("target_user_id")
+    
     with Session(common.database) as session:
         # Retrieve the user who wants to unfollow
         user = users.getUser(uid)
-        if user is None:
-            result["error"] = "USER_NOT_FOUND"
-            return result
 
         # Check if the user is currently following the target user
         following_list = common.fromStringList(user.following)
@@ -250,7 +259,6 @@ def unfollow_user(uid, target_user_id):
         # Commit the changes to the database
         session.commit()
 
-        result["message"] = f"Successfully unfollowed user {target_user_id}"
         return result
 
 @app.route('/users/<int:uid>/suggest')
