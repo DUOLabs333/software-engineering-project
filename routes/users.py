@@ -158,7 +158,27 @@ def rename():
             user.password_hash=password
             session.commit()
         return result
-            
+
+@app.route("/users/block", methods = ['POST'])
+def rename():
+    result={}
+    if not common.hasAccess():
+        result["error"]="ACCESS_DENIED"
+        return result
+    
+    blocked_id=request.json.get("blocked_id",None)
+    if blocked_id is None:
+        result["error"]="NO_ID_SPECIFIED"
+        return result
+        
+    uid=request.json["uid"]
+    with Session(common.database) as session:
+        user=users.getUser(uid)
+        
+        user.blocked=appendToStringList(user.blocked,blocked_id)
+        session.commit()
+    return result
+    
 @app.route("/users/delete", methods = ['POST'])
 def delete():
     result={}

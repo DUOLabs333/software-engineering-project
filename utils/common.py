@@ -22,6 +22,11 @@ def fromStringList(string):
 def toStringList(lst):
     return " "+(" ".join(lst))+" "
 
+def appendToStringList(lst,val):
+    lst=fromStringList(lst)
+    lst.append(str(val))
+    return toStringList(lst)
+    
 def hasAccess():
     uid=request.json["uid"]
     hash=request.json["key"]
