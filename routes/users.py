@@ -126,31 +126,38 @@ def info():
         
         return result
         
-@app.route("/users/rename", methods = ['POST'])
+@app.route("/users/modify", methods = ['POST'])
 def rename():
     result={}
     if not common.hasAccess():
         result["error"]="ACCESS_DENIED"
         return result
     
-    new_name=request.json.get("new_name")
+    username=request.json.get("username",None)
+    password=request.json.get("password_hash",None)
     uid=request.json["uid"]
     with Session(common.database) as session:
         lock.acquire()
         user=users.getUser(uid)
-        if user.username==new_name:
-            result["error"]="NAME_NOT_CHANGED"
-            lock.release()
-            return result
-        elif session.scalars(select(tables.User.id).where(tables.User.username==new_name)).first() is not None:
-            result["error"]="NAME_ALREADY_TAKEN"
-            lock.release()
-            return result
-        else:
-            user.username=new_name
+        
+        if username is not None:
+            if user.username==username:
+                result["error"]="NAME_NOT_CHANGED"
+                lock.release()
+                return result
+            elif session.scalars(select(tables.User.id).where(tables.User.username==username)).first() is not None:
+                result["error"]="NAME_ALREADY_TAKEN"
+                lock.release()
+                return result
+            else:
+                user.username=username
+                session.commit()
+                lock.release()
+        
+        if password is not None:
+            user.password_hash=password
             session.commit()
-            lock.release()
-            return result
+        return result
             
 @app.route("/users/delete", methods = ['POST'])
 def delete():
