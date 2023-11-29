@@ -76,7 +76,7 @@ def post():
     
     uid=request.json["uid"]
     user=users.getUser(uid)
-    if not common.hasType(user.user_type,users.ORDINARY):
+    if not user.hasType(user.ORDINARY):
         result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
     
@@ -92,10 +92,10 @@ def post():
     extra_words=max(len(words_in_post)-20,0)
     
     cost=0
-    mask=user.user_type
-    if users.hasType(mask,users.CORPORATE):
+    
+    if user.hasType(user.CORPORATE):
         cost=1*words_in_post #$1 for every word
-    elif users.hasType(mask,users.ORDINARY) or users.hasType(mask,users.TRENDY):
+    elif user.hasType(user.ORDINARY) or user.hasType(user.TRENDY):
         cost=0.1*extra_words #$0.10 for every word over 20 words. Also need to check for images.
     else:
         result["error"]="INSUFFICIENT_PERMISSION" #Can't post without being at least OU
@@ -162,7 +162,7 @@ def post_edit():
     
     uid=request.json["uid"]
     user=users.getUser(uid)
-    if not common.hasType(user.user_type,users.ORDINARY):
+    if not user.hasType(user.ORDINARY):
         result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
         
@@ -207,7 +207,7 @@ def post_delete():
                 can_delete=True
         elif post.author==uid:
             can_delete=True
-        elif users.checkForType(user.user_type, users.SUPER):
+        elif user.hasType(user.SUPER):
             can_delete=True
         
         if not can_delete:
@@ -230,7 +230,7 @@ def upload():
     result={}
     uid=request.json["uid"]
     user=users.getUser(uid)
-    if not common.hasType(user.user_type,users.ORDINARY):
+    if not user.hasType(user.ORDINARY):
         result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
         

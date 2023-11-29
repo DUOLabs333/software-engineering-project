@@ -4,7 +4,7 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
-from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 import time
 # declarative base class
@@ -27,7 +27,39 @@ class User(BaseTable):
     disliked_posts: Mapped[str]
     inbox: Mapped[int]
     profile: Mapped[int]
-
+    
+    SURFER=0
+    ORDINARY=1
+    TRENDY=2
+    CORPORATE=3
+    SUPER = 4
+    BANNED = 5
+    
+    def addType(self,_type):
+        if (self.hasType(self.CORPORATE) or self.hasType(self.SUPER)) and _type==TRENDY: #SUPER and CORPORATE Users can not become TRENDY
+            return
+        elif _type in [CORPORATE,SUPER]: #If TRENDY users become CORPORATE or SUPER, they can no longer be TRENDY
+            self.removeType(self.TRENDY)
+            
+        self.user_type|= (1<<_type)
+    
+    def removeType(self,_type):
+        self.user_type&= ~(1<<type)
+    
+    @hybrid_method
+    def hasType(self,_type):
+        return (self.user_type & (1<<_type))==_type
+    
+    def listTypes(self):
+        result=[]
+        for attr in dir(self):
+            value=getattr(self,attr)
+            if not(attr.isupper() and (not attr.startswith("_")) and (not attr.endswith("_")) and isinstance(value,int)):
+                continue
+            if self.hasType(value):
+                result.append(attr)
+        return result
+         
     def is_trendy(self):
         #Define conditions, so you can check whether it should be trnedy at evey sub/unsub, view like/dislike, etc by someone else. If so, add TU to type. If not, remove TU. Also, use select as needed. Check for warnings (must have <=3 
         self.views>10 & (self.views>=3*self.dislikes) & (self.post_type=="POST")

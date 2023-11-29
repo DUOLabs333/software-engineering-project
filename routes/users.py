@@ -59,8 +59,9 @@ def create():
     if user_type not in ["SURFER","ORDINARY","CORPORATE"]:
         result["error"]="INVALID_USER_TYPE"
         return result
-        
-    user.user_type=users.addType(0, getattr(users,user_type))
+    
+    user.user_type=0   
+    user.addType(getattr(user,user_type))
     
     for attr in ["following","blocked","liked_posts","disliked_posts"]:
         setattr(user,attr,common.toStringList([]))
@@ -100,19 +101,18 @@ def info():
             result["error"]="USER_NOT_FOUND"
             return result
         
-        result["result"]={}
         for col in user.__mapper__.attrs.keys():
             value=getattr(user,col)
             
             if col=="password_hash":
                 continue
             elif col=="user_type":
-                value=users.listTypes(value)
+                value=user.listTypes()
             elif col=="following":
                 value=common.fromStringList(value)
             elif col in ["inbox","blocked","id"] and id!=uid:
                 continue
-            result["result"][col]=value
+            result[col]=value
         
         return result
         
