@@ -7,6 +7,8 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 import time
+from common import users
+
 # declarative base class
 class BaseTable(DeclarativeBase):
     pass
@@ -59,12 +61,25 @@ class User(BaseTable):
             if self.hasType(value):
                 result.append(attr)
         return result
-         
-    def is_trendy(self):
-        #Define conditions, so you can check whether it should be trnedy at evey sub/unsub, view like/dislike, etc by someone else. If so, add TU to type. If not, remove TU. Also, use select as needed. Check for warnings (must have <=3 
-        self.views>10 & (self.views>=3*self.dislikes) & (self.post_type=="POST")
     
+    @hybrid_method
+    def has_blocked(self,id):
+        return f" {id} " in self.blocked
     
+    @has_blocked.expression
+    def has_blocked(cls,id):
+        return cls.blocked.contains(" "+str(id)+" ")
+    
+    @hybrid_method
+    def has_followed(self,id):
+        return f" {id} " in self.following
+    
+    @has_blocked.expression
+    def has_followed(cls,id):
+        return cls.following.contains(" "+str(id)+" ")
+    
+    def update_trendy_status(self):
+        users.update_trendy_status(self)
 
 class Post(BaseTable):
     __tablename__ = "POSTS"
@@ -83,13 +98,12 @@ class Post(BaseTable):
     parent_post: Mapped[int] = mapped_column(nullable=True,index=True)
     
     @hybrid_property
-    def is_trending(self):
+    def is_trendy(self):
         self.views>10 & (self.views>=3*self.dislikes) & (self.post_type=="POST")
     
     @hybrid_property
     def trending_ranking(self):
         return self.views/self.dislikes
-        
 
 class JobApplication(BaseTable):
     __tablename__="JOBS"

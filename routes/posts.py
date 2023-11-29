@@ -25,17 +25,12 @@ def homepage():
     uid=request.json["uid"]
     user=users.getUser(uid)
     with Session(common.database) as session:
-        blocked=user.blocked
-        blocked=common.fromStringList(blocked)
         
-        following=user.following
-        following=common.fromStringList(following)
+        query=select(tables.Post.id).where(user.has_followed(tables.Post.author) & (tables.Post.id < before) & ~(user.has_blocked(tables.Post.author)) & (tables.Post.type=="POST") ).limit(limit).order_by(desc(tables.Post.id))
         
-        query=select(tables.Post.id).where((tables.Post.author.in_(following)) & (tables.Post.id < before) & (tables.Post.author.not_in(blocked)) & (tables.Post.type=="POST") ).limit(limit).order_by(desc(tables.Post.id))
-        
-        result["result"]=[]
+        result["posts"]=[]
         for row in session.scalars(query).all():
-            result["result"].append(row)
+            result["posts"].append(row)
         
         return result
         
@@ -50,18 +45,18 @@ def trending():
     
     uid=request.json["uid"]
     with Session(common.database) as session:
-        result["result"]=[]
+        result["posts"]=[]
         
         blocked=users.getUser(uid).blocked
         blocked=common.fromStringList(blocked)
         
-        while len(result["result"])<50:
-            query=select(tables.Post.id).where((tables.Post.id < before) & (tables.Post.author.not_in(blocked)) & (tables.Post.is_trending==True) ).limit(limit-len(result["result"])).order_by(desc(tables.Post.trendy_ranking))
+        while len(result["posts"])<50:
+            query=select(tables.Post.id).where((tables.Post.id < before) & ~(user.has_blocked(tables.Post.author)) & (tables.Post.is_trendy==True) ).limit(limit-len(result["posts"])).order_by(desc(tables.Post.trendy_ranking))
             
             count=0
             for row in session.scalars(query).all():
                 count+=1
-                result["result"].append(row)
+                result["posts"].append(row)
             
             if count==0: #No more posts left to iterate through
                 break
@@ -273,7 +268,7 @@ def image():
     
     id=request.json["id"]
     with Session(common.database) as session:
-        path, type =session.scalars(select(tables.Upload.path, tables.Upload.type).where(tables.Upload.id==id)).first()
+        path, type =session.execute(select(tables.Upload.path, tables.Upload.type).where(tables.Upload.id==id)).first()
         path=path.replace("/",os.path.sep)
         
         return send_file(path, mimetype=type)
