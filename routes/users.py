@@ -9,7 +9,7 @@ from sqlalchemy import select, desc
 
 from sqlalchemy.orm import Session
 import multiprocessing
-import random, string,time
+import random, string,time, heapq
 
 lock=multiprocessing.Lock() #We lock not because of the IDs (autoincrement is enough), but because of the usernames
 
@@ -345,5 +345,36 @@ def top3users():
     
     with Session(common.database) as session:
         result["users"]=session.scalars(query).all()
+    
+    return result
+
+#For suggest, just take the union of what the following follow. Sort by length of intersection between user following and they following. If space left over, add random users.
+
+@app.route("/users/suggest")
+@common.authenticate
+def suggest():
+    result={}
+    
+    uid=request.json["uid"]
+    
+    with Session(common.database) as session:
+        user=users.getUser(uid,session)
+        following=set(common.fromStringList(user.following))
+        liked_posts=set(common.fromStringList(user.liked_posts))
+        disliked_posts=set(common.fromStringList(user.disliked_posts))
+        
+        list_of_users=[]
+        for row in session.scalars(select(tables.User.id,tables.User.following,tables.User.liked_posts,tables.User.disliked_posts).where(tables.User.id!=uid)).all(): #Based ranking on how common their interests are with yours. May be slow on large amount of users
+            row[1]=set(common.fromStringList(row[1]))
+            row[2]=set(common.fromStringList(row[2]))
+            row[3]=set(common.fromStringList(row[3]))
+            intersections=0
+            intersections+=len(following.intersection(row[1]))
+            intersections+=len(liked_posts.intersection(row[2]))
+            intersections+=len(disliked_posts.intersection(row[3]))
+            
+            list_of_users.append([row[0],intersections])
+    
+    result["users"]=[_[0] for _ in heapq.nlargest(min(10,len(list_of_users)),list_of_users,key=lambda x: x[1])]
     
     return result
