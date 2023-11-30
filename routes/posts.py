@@ -115,7 +115,7 @@ def create_post():
         result["error"]="NOT_CORPORATE_USER"
         return
        
-    result["id"]=posts.createPost("POST", data)
+    result["id"]=posts.createPost(data)
     
     if cost>0: #If you can't pay, posts get deleted
         return_val=balance.RemoveFromBalance(uid,cost)

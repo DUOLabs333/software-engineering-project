@@ -2,7 +2,6 @@ from utils import tables, common
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
 
 def GetBalance(id):
     with Session(common.database) as session:

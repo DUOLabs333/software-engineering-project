@@ -5,13 +5,12 @@ import sys,os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)),"..")))
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
 from flask import Flask, request
 from flask_cors import CORS
 
 database = create_engine("sqlite:///test_db.db")
 
-import utils.users
+import utils.users as users
 
 app=Flask("backend_server")
 

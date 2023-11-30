@@ -1,14 +1,10 @@
-from sqlalchemy import ForeignKey
-from sqlalchemy import String
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
-from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
-
-import time
 from utils import users
 
+import time
 # declarative base class
 class BaseTable(DeclarativeBase):
     pass
@@ -38,9 +34,10 @@ class User(BaseTable):
     BANNED = 5
     
     def addType(self,_type):
-        if (self.hasType(self.CORPORATE) or self.hasType(self.SUPER)) and _type==TRENDY: #SUPER and CORPORATE Users can not become TRENDY
+        print(self.type)
+        if (self.hasType(self.CORPORATE) or self.hasType(self.SUPER)) and _type==self.TRENDY: #SUPER and CORPORATE Users can not become TRENDY
             return
-        elif _type in [CORPORATE,SUPER]: #If TRENDY users become CORPORATE or SUPER, they can no longer be TRENDY
+        elif _type in [self.CORPORATE,self.SUPER]: #If TRENDY users become CORPORATE or SUPER, they can no longer be TRENDY
             self.removeType(self.TRENDY)
             
         self.type|= (1<<_type)
@@ -99,7 +96,7 @@ class Post(BaseTable):
     
     @hybrid_property
     def is_trendy(self):
-        self.views>10 & (self.likes>=3*self.dislikes) & (self.type=="POST")
+        return self.views>10 & (self.likes>=3*self.dislikes) & (self.type=="POST") & (self.time_posted>time.time()-5*60*60)
     
     @hybrid_property
     def trendy_ranking(self):

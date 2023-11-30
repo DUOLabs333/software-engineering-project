@@ -76,8 +76,8 @@ def create():
         session.add(user)
         session.commit()
         
-        user.inbox=posts.createPost("INBOX",{"author": user.id, "text":"This is your inbox.","keywords":[]})
-        user.profile=posts.createPost("PROFILE",{"author": user.id, "text":"This is your profile.","keywords":[]})
+        user.inbox=posts.createPost({"author": user.id, "text":"This is your inbox.","keywords":[],"type":"INBOX"})
+        user.profile=posts.createPost({"author": user.id, "text":"This is your profile.","keywords":[],"type":"PROFILE"})
         session.commit()
         
         lock.release()
