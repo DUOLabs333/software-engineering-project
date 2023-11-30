@@ -134,6 +134,8 @@ def post_info():
     with Session(common.database) as session:
         post=posts.getPost(request.json.get("id"),session=session)
         posts.views+=1 #Someone looked at it
+        
+        users.getUser(post.author).update_trendy_status() #Event handler
         session.commit()
         
         if post is None:
@@ -200,9 +202,11 @@ def post_delete():
             parent_post=posts.getPost(post.parent_id)
             if parent_post.author==uid:
                 can_delete=True
-        elif post.author==uid:
+            
+        if post.author==uid:
             can_delete=True
-        elif user.hasType(user.SUPER):
+            
+        if user.hasType(user.SUPER):
             can_delete=True
         
         if not can_delete:
@@ -214,6 +218,93 @@ def post_delete():
             session.commit()
             lock.release()
             return result
+            
+@app.route("/users/posts/like")
+@common.authenticate
+def like_post():
+    result = {}
+    
+    uid=request.json["uid"]
+    post_id=request.json["post_id"]
+    user = users.getUser(uid)
+    if not user.hasType(user.ORDINARY):
+        result["error"] = "NOT_ORDINARY_USER"
+        return result
+
+    with Session(common.database) as session:
+        post = posts.getPost(post_id,session)
+        if not post:
+            result["error"] = "POST_NOT_FOUND"
+            return result
+
+        user = users.getUser(uid,session)
+        liked_posts = common.fromStringList(user.liked_posts)
+        disliked_posts = common.fromStringList(user.disliked_posts)
+        
+        # If post is already disliked, remove the dislike first
+        if str(post_id) in disliked_posts:
+            post.dislikes -= 1
+            disliked_posts.remove(str(post_id))
+            user.disliked_posts = common.toStringList(disliked_posts)
+
+        # Proceed to like the post if not already liked
+        if str(pid) not in liked_posts:
+            post.likes += 1
+            liked_posts.append(str(pid))
+            user.liked_posts = common.toStringList(liked_posts)
+        else:
+            result["error"]="ALREADY_LIKED"
+            return
+            
+        session.commit()
+        users.getUser(post.author).update_trendy_status() #Event handler
+        session.commit()
+
+    return result
+
+@app.route("/users/posts/dislike")
+@common.authenticate
+def like_post():
+    result = {}
+    
+    uid=request.json["uid"]
+    post_id=request.json["post_id"]
+    user = users.getUser(uid)
+    if not user.hasType(user.ORDINARY):
+        result["error"] = "NOT_ORDINARY_USER"
+        return result
+
+    with Session(common.database) as session:
+        post = posts.getPost(post_id,session)
+        if not post:
+            result["error"] = "POST_NOT_FOUND"
+            return result
+
+        user = users.getUser(uid,session)
+        liked_posts = common.fromStringList(user.liked_posts)
+        disliked_posts = common.fromStringList(user.disliked_posts)
+        
+        # If post is already liked, remove the like first
+        if str(post_id) in liked_posts:
+            post.likes -= 1
+            liked_posts.remove(str(post_id))
+            user.liked_posts = common.toStringList(liked_posts)
+
+        # Proceed to dislike the post if not already disliked
+        if str(pid) not in disliked_posts:
+            post.dislikes += 1
+            disliked_posts.append(str(pid))
+            user.disliked_posts = common.toStringList(disliked_posts)
+        else:
+            result["error"]="ALREADY_DISLIKED"
+            return
+        
+        session.commit()
+        users.getUser(post.author).update_trendy_status() #Event handler
+        session.commit()
+
+    return result
+
 
 random_string = lambda N: ''.join(random.choices(string.ascii_uppercase + string.digits, k=N))
 

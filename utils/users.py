@@ -2,10 +2,18 @@ from utils import tables, common
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-def getUser(user_id):
-    with Session(common.database) as session:
-        query=select(tables.User).where(tables.User.id==user_id)
-        return session.scalars(query).first()
+def getUser(user_id,session=None):
+    session_exists=True
+    if session is None:
+        session_exists=False #Have to make one
+        session=Session(common.database,expire_on_commit=False) #Can be used outside session
+        
+    query=select(tables.User).where(tables.User.id==user_id)
+    result=session.scalars(query).first()
+    
+    if session_exists:
+        session.close() 
+    return result
 
 
 def is_trendy(user):
@@ -30,6 +38,10 @@ def is_trendy(user):
         query=select(tables.Post.id).where((tables.Post.author==user.id) & (tables.Post.is_trendy==True))
         
         result &= (len(session.scalars(query).all())>=2) #wrote at least two trendy posts
+        
+        query=select(tables.Post.id).where((tables.Post.post_type=="WARNING") & (tables.Post.parent_post==user.inbox))
+        
+        result &= (len(session.scalars(query).all())<=3) #Must have at most three warnings
         
     return result
 

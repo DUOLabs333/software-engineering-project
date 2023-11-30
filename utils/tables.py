@@ -7,7 +7,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 
 import time
-from common import users
+from utils import users
 
 # declarative base class
 class BaseTable(DeclarativeBase):
@@ -99,7 +99,7 @@ class Post(BaseTable):
     
     @hybrid_property
     def is_trendy(self):
-        self.views>10 & (self.views>=3*self.dislikes) & (self.post_type=="POST")
+        self.views>10 & (self.likes>=3*self.dislikes) & (self.post_type=="POST")
     
     @hybrid_property
     def trending_ranking(self):

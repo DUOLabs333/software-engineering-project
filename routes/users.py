@@ -29,18 +29,20 @@ def checkIfUsernameExists(username): #You must have the USERS database locked, a
 @app.route("/users/create", methods = ['POST'])
 def create():
     result={}
-    anonymous=request.json.get("anonymous",False)
+    
+    data=request.json
+    anonymous=data.get("anonymous",False)
     
     lock.acquire()
     
     if anonymous:
         while True:
-            request.json["username"]="anon_"+random.randint(0,10000000)
-            if not checkIfUsernameExists(request.json["user"]):
+            data["username"]=f"anon_{random.randint(0,10000000)}"
+            if not checkIfUsernameExists(data["username"]):
                 break
-        result["password"]=''.join(random.choices(string.ascii_uppercase + string.digits, k=256))
+        data["password_hash"]=''.join(random.choices(string.ascii_uppercase + string.digits, k=256))
     
-    username=request.json["username"]
+    username=data["username"]
     
     if checkIfUsernameExists(username):
         lock.release()
@@ -50,11 +52,11 @@ def create():
     user=tables.User()
     
     for attr in ["username","password_hash"]:
-        setattr(user,attr,request.json[attr])
+        setattr(user,attr,data[attr])
     
     user.creation_time=int(time.time())
     
-    user_type=request.json.get("user_type","SURFER")
+    user_type=data.get("user_type","SURFER")
     
     if user_type not in ["SURFER","ORDINARY","CORPORATE"]:
         result["error"]="INVALID_USER_TYPE"
@@ -95,8 +97,7 @@ def info():
     id=request.json.get("id",uid) #By default, use the current uid
     
     with Session(common.database) as session:
-        
-        user=users.getUser(id)
+        user=users.getUser(id,session)
         if user is None:
             result["error"]="USER_NOT_FOUND"
             return result
@@ -125,7 +126,7 @@ def modify():
     uid=request.json["uid"]
     with Session(common.database) as session:
         lock.acquire()
-        user=users.getUser(uid)
+        user=users.getUser(uid,session)
         
         if username is not None:
             if user.username==username:
@@ -155,7 +156,7 @@ def block():
         
     uid=request.json["uid"]
     with Session(common.database) as session:
-        user=users.getUser(uid)
+        user=users.getUser(uid,session)
         
         user.blocked=appendToStringList(user.blocked,blocked_id)
         session.commit()
@@ -169,9 +170,15 @@ def delete():
         lock.acquire()
         
         uid=request.json["uid"]
-        user=users.getUser(uid)
+        user=users.getUser(id,session)
         
-        session.delete(user)
+        deleted_user=users.getUser(request.json["id"])
+        
+        if not(user.hasType(user.SUPER) or (deleted_user.id==user.id)):
+            result["error"]="INSUFFICIENT_PERMISSION"
+            return
+            
+        session.delete(deleted_user)
         session.commit()
         lock.release()
         return result
