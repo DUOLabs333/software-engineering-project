@@ -229,4 +229,49 @@ def change_type():
     
     return result  
 
-#follow, unfollow, tip        
+@app.route('/usersfollow') #Despite the name, this does following and unfollowing together
+@common.authenticate
+def follow_user():
+    result = {}
+    
+    target_user = request.json["target_user"]
+    operation=request.json.get("operation","FOLLOW")
+    
+    uid=request.json["uid"]
+    with Session(common.database) as session:
+        # Retrieve the user who wants to follow
+        user = users.getUser(uid,session)
+
+        # Retrieve the target user
+        target_user = users.getUser(target_user)
+        if target_user is None:
+            result["error"] = "TARGET_USER_NOT_FOUND"
+            return result
+        
+        # Check if already following
+        following_list = common.fromStringList(user.following)
+        
+        if operation=="FOLLOW":
+            if str(target_user.id) in following_list:
+                result["error"] = "ALREADY_FOLLOWED"
+                return result
+            else:
+                following_list.append(str(target_user_id))  # Ensure it is stored as a string
+                user.following = common.toStringList(following_list)
+        elif operation=="UNFOLLOW":
+            if str(target_user.id) not in following_list:
+                result["error"] = "ALREADY_UNFOLLOWED"
+                return result
+            else:
+               following_list.remove(str(target_user_id))
+               user.following = common.toStringList(following_list) 
+
+        
+        # Commit the changes to the database
+        session.commit()
+        
+        users.getUser(target_user.id).update_trendy_status() #Event handler
+        session.commit()
+        
+        return result
+#tip        

@@ -112,7 +112,11 @@ def post():
     if len(data["keywords"])>3:
         result["error"]="TOO_MANY_KEYWORDS"
         return
-        
+    
+    if data["post_type"]=="AD" and (not user.hasType(user.CORPORATE)): #Non-CUs can not post ads.
+        result["error"]="NOT_CORPORATE_USER"
+        return
+       
     result["id"]=posts.createPost("POST", data)
     
     if cost>0: #If you can't pay, posts get deleted
@@ -265,7 +269,7 @@ def like_post():
 
 @app.route("/users/posts/dislike")
 @common.authenticate
-def like_post():
+def dislike_post():
     result = {}
     
     uid=request.json["uid"]
