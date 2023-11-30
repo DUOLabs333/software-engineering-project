@@ -202,3 +202,31 @@ def signin():
             
         result["uid"]=user.id
         return result                        
+
+@app.route("/users/promote")
+@common.authenticate
+def change_type():
+    result = {}
+    
+    target_type = request.json["target_type"]
+    target_user=request.json["target_user"]
+    operation=request.json.get("operation","ADD")
+    uid=request.json["uid"]
+    with Session(common.database) as session:
+        user = users.getUser(target_user,session)
+        
+        if not( (users.hasType(user.SUPER) and target_user != uid) or (operation=="REMOVE")): #Users should be able to remove user types by themselves
+            result["error"] = "INSUFFICIENT_PERMISSION"
+            return result
+        
+        target_type = getattr(user, target_type)
+        if operation=="ADD":
+            user.addType(target_type)
+        elif operation=="REMOVE":
+            user.removeType(target_type)           
+
+        session.commit()
+    
+    return result  
+
+#follow, unfollow, tip        

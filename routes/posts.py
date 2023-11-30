@@ -135,6 +135,7 @@ def post_info():
         post=posts.getPost(request.json.get("id"),session=session)
         posts.views+=1 #Someone looked at it
         
+        session.commit()
         users.getUser(post.author).update_trendy_status() #Event handler
         session.commit()
         
