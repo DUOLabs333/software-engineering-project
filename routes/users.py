@@ -5,7 +5,7 @@ from utils import users, posts
 
 from flask import request
 
-from sqlalchemy import select
+from sqlalchemy import select, desc
 
 from sqlalchemy.orm import Session
 import multiprocessing
@@ -317,3 +317,33 @@ def tip():
         
         target_user.update_trendy_status() #Event handler
         session.commit()       
+
+@app.route("/users/top3posts")
+@common.authenticate
+def top3posts():
+    result={}
+    
+    result["posts"]=[]
+    
+    user=users.getUser(request.json["uid"])
+    query=select(tables.Post.id).where(tables.Post.is_trendy & ~user.has_blocked(tables.Post.author)).order_by(desc(tables.Post.trendy_ranking)).limit(3)
+    
+    with Session(common.database) as session:
+        result["posts"]=session.scalars(query).all()
+    
+    return result
+
+@app.route("/users/top3users")
+@common.authenticate
+def top3users():
+    result={}
+    
+    result["users"]=[]
+    
+    user=users.getUser(request.json["uid"])
+    query=select(tables.User.id).where(tables.User.hasType(user.TRENDY) & ~user.has_blocked(tables.Post.id)).order_by(desc(tables.User.trendy_ranking)).limit(3)
+    
+    with Session(common.database) as session:
+        result["users"]=session.scalars(query).all()
+    
+    return result

@@ -1,5 +1,5 @@
 from utils import tables, common
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 def getUser(user_id,session=None):
@@ -9,7 +9,7 @@ def getUser(user_id,session=None):
         session=Session(common.database,expire_on_commit=False) #Can be used outside session
         
     query=select(tables.User).where(tables.User.id==user_id)
-    result=session.scalars(query).first()
+    result=session.scalars(query).one_or_none()
     
     if session_exists:
         session.close() 
@@ -25,15 +25,10 @@ def is_trendy(user):
         query=select(tables.User.id).where(tables.User.has_followed(user.id))
         result &= (len(session.scalars(query).all())>10) #Have >10 followers
         
-        likes=0
-        dislikes=0
-        query=select(tables.Post.likes,tables.Post.dislikes).where(tables.Post.author==user.id)
+        query=select(func.sum(tables.Post.likes)/(func.sum(tables.Post.dislikes)+1)).where(tables.Post.author==user.id)
         
-        for row in session.execute(query):
-            likes+=row[0]
-            dislikes+=row[1]
-        
-        result&=((likes>10*dislikes) or user.tips>100) #received >$100 in tips or have >10 more likes than dislikes
+        ratio=session.scalars(query).one_or_none() or 0
+        result&=(user.tips>100 or ratio>10) #received >$100 in tips or have >10 more likes than dislikes
         
         query=select(tables.Post.id).where((tables.Post.author==user.id) & (tables.Post.is_trendy==True))
         

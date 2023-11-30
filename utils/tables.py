@@ -3,6 +3,7 @@ from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from utils import users
+from sqlalchemy import func, select
 
 import time
 # declarative base class
@@ -77,6 +78,14 @@ class User(BaseTable):
     
     def update_trendy_status(self):
         users.update_trendy_status(self)
+    
+    @hybrid_property
+    def trendy_ranking(self):
+        return 0 #Nothing to return --- everything is implemented in the expression
+    
+    @trendy_ranking.expression
+    def trendy_ranking(cls):
+        return func.coalesce(select(func.sum(Post.likes)/(func.sum(Post.dislikes)+1)).where(Post.author==cls.id),0)
 
 class Post(BaseTable):
     __tablename__ = "POSTS"
@@ -100,7 +109,7 @@ class Post(BaseTable):
     
     @hybrid_property
     def trendy_ranking(self):
-        return self.views/self.dislikes
+        return self.views/(self.dislikes+1)
 
 class JobApplication(BaseTable):
     __tablename__="JOBS"

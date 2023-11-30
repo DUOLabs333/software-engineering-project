@@ -13,7 +13,7 @@ def getPost(post_id,session=None):
         session=Session(common.database,expire_on_commit=False) #Can be used outside session
         
     query=select(tables.Post).where(tables.Post.id==post_id)
-    result=session.scalars(query).first()
+    result=session.scalars(query).one_or_none()
     
     if session_exists:
         session.close() 

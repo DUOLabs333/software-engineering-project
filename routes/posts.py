@@ -73,11 +73,6 @@ def create_post():
         result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
     
-    #Check for taboo and replace with asterisks --- use regex, with \b for word boundary. case insensitive.
-    #Makr /top3posts and /top3users --- both unauthenticated.
-    #If word count is over, make post then bill, before returning
-    #Load list first into set
-    
     data=request.json
     
     taboo_word_count=0
