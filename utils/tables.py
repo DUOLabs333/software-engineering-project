@@ -20,7 +20,7 @@ class User(BaseTable):
     username: Mapped[str]
     password_hash: Mapped[str]
     creation_time: Mapped[int]
-    user_type: Mapped[int]
+    type: Mapped[int]
     following: Mapped[str]
     blocked: Mapped[str]
     tips: Mapped[float]
@@ -43,14 +43,14 @@ class User(BaseTable):
         elif _type in [CORPORATE,SUPER]: #If TRENDY users become CORPORATE or SUPER, they can no longer be TRENDY
             self.removeType(self.TRENDY)
             
-        self.user_type|= (1<<_type)
+        self.type|= (1<<_type)
     
     def removeType(self,_type):
-        self.user_type&= ~(1<<type)
+        self.type&= ~(1<<type)
     
     @hybrid_method
     def hasType(self,_type):
-        return (self.user_type & (1<<_type))==_type
+        return (self.type & (1<<_type))==_type
     
     def listTypes(self):
         result=[]
@@ -94,15 +94,15 @@ class Post(BaseTable):
     dislikes: Mapped[int]
     has_picture: Mapped[bool]
     has_video: Mapped[bool]
-    post_type: Mapped[int]
+    type: Mapped[int]
     parent_post: Mapped[int] = mapped_column(nullable=True,index=True)
     
     @hybrid_property
     def is_trendy(self):
-        self.views>10 & (self.likes>=3*self.dislikes) & (self.post_type=="POST")
+        self.views>10 & (self.likes>=3*self.dislikes) & (self.type=="POST")
     
     @hybrid_property
-    def trending_ranking(self):
+    def trendy_ranking(self):
         return self.views/self.dislikes
 
 class JobApplication(BaseTable):

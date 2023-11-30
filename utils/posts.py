@@ -27,9 +27,9 @@ def checkTrendyStatus(id): #Calculates if trendy, adds/removes usertype from mas
         isTrendy=user.followers>10 and (user.tips>100 or likes-dislikes>10) and trendy_posts>=2
         
         if not isTrendy:
-            user.user_type = users.removeType(user.user_type, users.TRENDY)
+            user.type = users.removeType(user.type, users.TRENDY)
         else:
-            user.user_type=users.addType(user.user_type,users.TRENDY)
+            user.type=users.addType(user.type,users.TRENDY)
             
         session.commit()
         
@@ -63,7 +63,7 @@ def createPost(type,data):
         post.keywords=common.toStringList(data.get("keywords",[]))
         
         post.parent_post=data.get("parent_post",None)
-        post.post_type=data.get("post_type","POST")
+        post.type=data.get("post_type","POST")
         
         for attr in ["views","likes","dislikes"]:
             setattr(post,attr,0)

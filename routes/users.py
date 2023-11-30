@@ -1,19 +1,15 @@
 from utils import common, tables
-from utils.common import app
+from utils.common import app, appendToStringList
 
 from utils import users, posts
 
 from flask import request
 
 from sqlalchemy import select
-from sqlalchemy import desc
 
 from sqlalchemy.orm import Session
 import multiprocessing
-import base64, json, time
-
-import random
-import string 
+import random, string,time
 
 lock=multiprocessing.Lock() #We lock not because of the IDs (autoincrement is enough), but because of the usernames
 
@@ -56,14 +52,14 @@ def create():
     
     user.creation_time=int(time.time())
     
-    user_type=data.get("user_type","SURFER")
+    type=data.get("type","SURFER")
     
-    if user_type not in ["SURFER","ORDINARY","CORPORATE"]:
+    if type not in ["SURFER","ORDINARY","CORPORATE"]:
         result["error"]="INVALID_USER_TYPE"
         return result
     
-    user.user_type=0   
-    user.addType(getattr(user,user_type))
+    user.type=0   
+    user.addType(getattr(user,type))
     
     for attr in ["following","blocked","liked_posts","disliked_posts"]:
         setattr(user,attr,common.toStringList([]))
@@ -94,6 +90,8 @@ def create():
 @common.authenticate
 def info():
     result={}
+    
+    uid=request.json["uid"]
     id=request.json.get("id",uid) #By default, use the current uid
     
     with Session(common.database) as session:
@@ -107,7 +105,7 @@ def info():
             
             if col=="password_hash":
                 continue
-            elif col=="user_type":
+            elif col=="type":
                 value=user.listTypes()
             elif col=="following":
                 value=common.fromStringList(value)
@@ -170,6 +168,7 @@ def delete():
         lock.acquire()
         
         uid=request.json["uid"]
+        id=request.json.get("id",uid)
         user=users.getUser(id,session)
         
         deleted_user=users.getUser(request.json["id"])
@@ -190,7 +189,7 @@ def signin():
         username=request.json["username"]
         password=request.json["password_hash"]
             
-        user=session.scalars(select(tables.User).where(tables.User.username==request.json["username"])).first()
+        user=session.scalars(select(tables.User).where(tables.User.username==username)).first()
         
         if user is None:
             result["error"]="USER_NOT_FOUND"
@@ -215,7 +214,7 @@ def change_type():
     with Session(common.database) as session:
         user = users.getUser(target_user,session)
         
-        if not( (users.hasType(user.SUPER) and target_user != uid) or (operation=="REMOVE")): #Users should be able to remove user types by themselves
+        if not( (user.hasType(user.SUPER) and target_user != uid) or (operation=="REMOVE")): #Users should be able to remove user types by themselves
             result["error"] = "INSUFFICIENT_PERMISSION"
             return result
         
@@ -256,14 +255,14 @@ def follow_user():
                 result["error"] = "ALREADY_FOLLOWED"
                 return result
             else:
-                following_list.append(str(target_user_id))  # Ensure it is stored as a string
+                following_list.append(str(target_user.id))  # Ensure it is stored as a string
                 user.following = common.toStringList(following_list)
         elif operation=="UNFOLLOW":
             if str(target_user.id) not in following_list:
                 result["error"] = "ALREADY_UNFOLLOWED"
                 return result
             else:
-               following_list.remove(str(target_user_id))
+               following_list.remove(str(target_user.id))
                user.following = common.toStringList(following_list) 
 
         

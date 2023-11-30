@@ -5,10 +5,10 @@ from utils import posts
 from utils.common import app
 
 from flask import request, send_file
-from sqlalchemy import select
+from sqlalchemy import select, desc
 from sqlalchemy.orm import Session
 
-import base64, json, time, os, random, re
+import base64, os, random, re, string
 import multiprocessing
 from pathlib import Path
 
@@ -47,9 +47,7 @@ def trending():
     with Session(common.database) as session:
         result["posts"]=[]
         
-        blocked=users.getUser(uid).blocked
-        blocked=common.fromStringList(blocked)
-        
+        user=users.getUser(uid)
         while len(result["posts"])<50:
             query=select(tables.Post.id).where((tables.Post.id < before) & ~(user.has_blocked(tables.Post.author)) & (tables.Post.is_trendy==True) ).limit(limit-len(result["posts"])).order_by(desc(tables.Post.trendy_ranking))
             
@@ -66,7 +64,7 @@ def trending():
 
 @app.route("/users/posts/create", methods = ['POST'])
 @common.authenticate
-def post():
+def create_post():
     result={}
     
     uid=request.json["uid"]
@@ -113,15 +111,15 @@ def post():
         result["error"]="TOO_MANY_KEYWORDS"
         return
     
-    if data["post_type"]=="AD" and (not user.hasType(user.CORPORATE)): #Non-CUs can not post ads.
+    if data["type"]=="AD" and (not user.hasType(user.CORPORATE)): #Non-CUs can not post ads.
         result["error"]="NOT_CORPORATE_USER"
         return
        
     result["id"]=posts.createPost("POST", data)
     
     if cost>0: #If you can't pay, posts get deleted
-        balance=balance.RemoveFromBalance(uid,cost)
-        if balance==-1:
+        return_val=balance.RemoveFromBalance(uid,cost)
+        if return_val==-1:
             result["error"]="NOT_ENOUGH_MONEY"
             with Session(common.database) as session:
                 post=posts.getPost(result["id"],session)
@@ -137,7 +135,7 @@ def post_info():
     
     with Session(common.database) as session:
         post=posts.getPost(request.json.get("id"),session=session)
-        posts.views+=1 #Someone looked at it
+        post.views+=1 #Someone looked at it
         
         session.commit()
         users.getUser(post.author).update_trendy_status() #Event handler
@@ -169,7 +167,7 @@ def post_edit():
         return result
         
     with Session(common.database) as session:
-        post=posts.getPost(request.json["id"])
+        post=posts.getPost(request.json["id"],session)
         for key in request.json:
             value=request.json[key]
             
@@ -182,6 +180,7 @@ def post_edit():
                 value=common.toStringList(value)
                 
             setattr(post,key,value)
+        session.commit(post)
             
     return result
     
@@ -253,9 +252,9 @@ def like_post():
             user.disliked_posts = common.toStringList(disliked_posts)
 
         # Proceed to like the post if not already liked
-        if str(pid) not in liked_posts:
+        if str(post_id) not in liked_posts:
             post.likes += 1
-            liked_posts.append(str(pid))
+            liked_posts.append(str(post_id))
             user.liked_posts = common.toStringList(liked_posts)
         else:
             result["error"]="ALREADY_LIKED"
@@ -296,9 +295,9 @@ def dislike_post():
             user.liked_posts = common.toStringList(liked_posts)
 
         # Proceed to dislike the post if not already disliked
-        if str(pid) not in disliked_posts:
+        if str(post_id) not in disliked_posts:
             post.dislikes += 1
-            disliked_posts.append(str(pid))
+            disliked_posts.append(str(post_id))
             user.disliked_posts = common.toStringList(disliked_posts)
         else:
             result["error"]="ALREADY_DISLIKED"
@@ -317,7 +316,7 @@ upload_lock=multiprocessing.Lock()
 
 @app.route("/users/upload", methods = ['POST'])
 @common.authenticate
-def upload():
+def image_upload():
     result={}
     uid=request.json["uid"]
     user=users.getUser(uid)
@@ -339,7 +338,7 @@ def upload():
         upload=tables.Upload()
         
         while True: #Make sure there is not a row already with this filename
-            upload.path="/".join("images",random_string(10))
+            upload.path="/".join(["images",random_string(10)])
             if session.scalars(select(tables.Upload.id).where(tables.Upload.path==upload.path)).first() is None:
                 break
             
