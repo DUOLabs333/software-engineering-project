@@ -1,4 +1,4 @@
-from utils import common, tables
+from utils import common, tables, balance
 from utils.common import app, appendToStringList
 
 from utils import users, posts
@@ -228,7 +228,7 @@ def change_type():
     
     return result  
 
-@app.route('/usersfollow') #Despite the name, this does following and unfollowing together
+@app.route('/users/follow') #Despite the name, this does following and unfollowing together
 @common.authenticate
 def follow_user():
     result = {}
@@ -273,4 +273,47 @@ def follow_user():
         session.commit()
         
         return result
-#tip        
+
+@app.route("/users/tip")
+@common.authenticate
+def tip():
+    result = {}
+    
+    uid=request.json["uid"]
+    target_id=request.json["target_id"]
+    amount=request.json.get("amount",1) #By default, tip $1
+    
+    if uid==target_id:
+        result["error"]="SELF_TIP"
+        return
+    
+    if amount < 0:
+        result["error"]="NEGATIVE_TIP"
+        return
+    
+    with Session(common.database) as session: #Check if uid has enough and that target has account
+        user=users.getUser(uid,session)
+        
+        user_balance=balance.GetBalance(user.id)
+        
+        if user_balance is None:
+            result["error"]="BALANCE_NOT_FOUND"
+            return
+        
+        if user_balance < amount:
+            result["error"]="BALANCE_TOO_SMALL"
+            return
+        
+        if balance.GetBalance(target_id) is None:
+            result["error"]="TARGET_BALANCE_NOT_FOUND"
+            return
+        
+        balance.RemoveFromBalance(user.id,amount)
+        balance.AddToBalance(target_id,amount)
+        
+        target_user=users.getUser(target_id,session)
+        target_user.tips+=amount
+        session.commit()
+        
+        target_user.update_trendy_status() #Event handler
+        session.commit()       
