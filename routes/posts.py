@@ -1,4 +1,4 @@
-from utils import common, tables, users, balance
+from utils import common, tables, users, balance, jobs
 
 from utils import posts
 
@@ -15,7 +15,7 @@ from pathlib import Path
 lock=multiprocessing.Lock() #Not enough to use autoincrement ---- autoincrement doesn't neccessarily create monotonically increasing IDs, only unique ones. However, we need it in a specific order.
 
 
-@app.route("/users/homepage", methods = ['POST'])
+@app.route("/posts/homepage", methods = ['POST'])
 @common.authenticate
 def homepage():
     result={}
@@ -26,16 +26,14 @@ def homepage():
     user=users.getUser(uid)
     with Session(common.database) as session:
         
-        query=select(tables.Post.id).where(user.has_followed(tables.Post.author) & (tables.Post.id < before) & ~(user.has_blocked(tables.Post.author)) & (tables.Post.type=="POST") ).limit(limit).order_by(desc(tables.Post.id))
+        query=select(tables.Post.id).where(user.has_followed(tables.Post.author) & (tables.Post.id < before) & ~(user.has_blocked(tables.Post.author)) & (tables.Post.type=="POST") ).limit(limit).order_by(desc(tables.Post.id)) #Sort chronologically, not algorithmically --- one of the biggest problems with other social media sites
         
-        result["posts"]=[]
-        for row in session.scalars(query).all():
-            result["posts"].append(row)
+        result["posts"]=session.scalars(query).all()
         
         return result
         
             
-@app.route("/users/trending", methods = ['POST'])
+@app.route("/posts/trending", methods = ['POST'])
 @common.authenticate
 def trending():
     result={}
@@ -48,21 +46,14 @@ def trending():
         result["posts"]=[]
         
         user=users.getUser(uid)
-        while len(result["posts"])<50:
-            query=select(tables.Post.id).where((tables.Post.id < before) & ~(user.has_blocked(tables.Post.author)) & (tables.Post.is_trendy==True) ).limit(limit-len(result["posts"])).order_by(desc(tables.Post.trendy_ranking))
-            
-            count=0
-            for row in session.scalars(query).all():
-                count+=1
-                result["posts"].append(row)
-            
-            if count==0: #No more posts left to iterate through
-                break
+        query=select(tables.Post.id).where((tables.Post.id < before) & ~(user.has_blocked(tables.Post.author)) & (tables.Post.is_trendy==True) ).limit(limit).order_by(desc(tables.Post.trendy_ranking))
+        
+        result["posts"]=session.scalars(query).all()
         
         return result
 
 
-@app.route("/users/posts/create", methods = ['POST'])
+@app.route("/posts/create", methods = ['POST'])
 @common.authenticate
 def create_post():
     result={}
@@ -88,7 +79,7 @@ def create_post():
     else:
         result["error"]="INSUFFICIENT_PERMISSION" #Can't post without being at least OU
         return result
-         
+              
     taboo_list=open("taboo_list.txt","r+").read().splitlines()
     taboo_list=[word.strip() for word in taboo_list]
     taboo_list=set(taboo_list)
@@ -106,7 +97,7 @@ def create_post():
         result["error"]="TOO_MANY_KEYWORDS"
         return
     
-    if data["type"]=="AD" and (not user.hasType(user.CORPORATE)): #Non-CUs can not post ads.
+    if (data["type"] in ["AD","JOB"]) and (not user.hasType(user.CORPORATE)): #Non-CUs can not post ads.
         result["error"]="NOT_CORPORATE_USER"
         return
        
@@ -123,7 +114,7 @@ def create_post():
             return
     return result
 
-@app.route("/users/posts/info", methods = ['POST'])
+@app.route("/posts/info", methods = ['POST'])
 @common.authenticate
 def post_info():
     result={}
@@ -132,6 +123,13 @@ def post_info():
         post=posts.getPost(request.json.get("id"),session=session)
         post.views+=1 #Someone looked at it
         
+        if post.type=="JOB":
+            return_value=jobs.charge_for_post(post,session)
+            if return_value==-1: #Out of money
+                result["error"]="APPLICATION_NOT_AVAILABLE"
+                post.views-=1
+                session.commit()
+                return
         session.commit()
         users.getUser(post.author).update_trendy_status() #Event handler
         session.commit()
@@ -150,7 +148,7 @@ def post_info():
         
     return result
 
-@app.route("/users/posts/edit", methods = ['POST'])
+@app.route("/posts/edit", methods = ['POST'])
 @common.authenticate
 def post_edit():
     result={}
@@ -163,23 +161,24 @@ def post_edit():
         
     with Session(common.database) as session:
         post=posts.getPost(request.json["id"],session)
-        for key in request.json:
+        for key in ["title","keywords","text"]:
             value=request.json[key]
             
-            if (not hasattr(post, key)) or key=="id":
+            if not(hasattr(post, key)):
                 continue
             elif key=="keywords":
                 if len(value)>3:
                     result["error"]="TOO_MANY_KEYWORDS"
                     return
-                value=common.toStringList(value)
+                else:
+                    value=common.toStringList(value)
                 
             setattr(post,key,value)
         session.commit(post)
             
     return result
     
-@app.route("/users/posts/delete", methods = ['POST'])
+@app.route("/posts/delete", methods = ['POST'])
 @common.authenticate
 def post_delete():
     result={}
@@ -218,7 +217,7 @@ def post_delete():
             lock.release()
             return result
             
-@app.route("/users/posts/like")
+@app.route("/posts/like")
 @common.authenticate
 def like_post():
     result = {}
@@ -261,7 +260,7 @@ def like_post():
 
     return result
 
-@app.route("/users/posts/dislike")
+@app.route("/posts/dislike")
 @common.authenticate
 def dislike_post():
     result = {}

@@ -26,6 +26,7 @@ class User(BaseTable):
     disliked_posts: Mapped[str]
     inbox: Mapped[int]
     profile: Mapped[int]
+    applied: Mapped[int]
     
     SURFER=0
     ORDINARY=1
@@ -102,6 +103,7 @@ class Post(BaseTable):
     has_video: Mapped[bool]
     type: Mapped[int]
     parent_post: Mapped[int] = mapped_column(nullable=True,index=True)
+    hidden: Mapped[bool] = mapped_column(default=False)
     
     @hybrid_property
     def is_trendy(self):
@@ -111,15 +113,6 @@ class Post(BaseTable):
     def trendy_ranking(self):
         return self.views/(self.dislikes+1)
 
-class JobApplication(BaseTable):
-    __tablename__="JOBS"
-    
-    id: Mapped[int] = mapped_column(primary_key=True)
-    author: Mapped[int]
-    questions: Mapped[str]
-    time_posted: Mapped[int]
-    due_date: Mapped[int] = mapped_column(nullable=True)
-    
 class Balance(BaseTable):
     __tablename__="BALANCE"
     

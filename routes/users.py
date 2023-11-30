@@ -300,15 +300,14 @@ def tip():
             result["error"]="BALANCE_NOT_FOUND"
             return
         
-        if user_balance < amount:
-            result["error"]="BALANCE_TOO_SMALL"
-            return
-        
         if balance.GetBalance(target_id) is None:
             result["error"]="TARGET_BALANCE_NOT_FOUND"
             return
         
-        balance.RemoveFromBalance(user.id,amount)
+        if balance.RemoveFromBalance(user.id,amount)==-1:
+            result["error"]="BALANCE_TOO_SMALL"
+            return
+            
         balance.AddToBalance(target_id,amount)
         
         target_user=users.getUser(target_id,session)
