@@ -22,6 +22,7 @@ def jobs_list():
         query=select(tables.Post.id).where((tables.Post.type=="JOB") & ~(tables.Post.hidden) & (tables.Post.author!=user.id) & ~(user.applied.contains(" "+str(tables.Post.id)+"|")) & (tables.Post.id < before)).order_by(desc(tables.Post.id)).limit(limit)
         
         result["posts"]=session.scalars(query).all()
+        result["before"]=result["posts"][-1] #New pagination id
     
     return result
 
