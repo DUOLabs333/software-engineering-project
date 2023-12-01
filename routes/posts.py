@@ -119,8 +119,15 @@ def create_post():
 def post_info():
     result={}
     
+    uid=request.json["uid"]
+    user=users.getUser(uid)
     with Session(common.database) as session:
         post=posts.getPost(request.json.get("id"),session=session)
+        
+        if not post.is_viewable(user):
+            result["error"]="INSUFFICIENT_PERMISSION"
+            return
+                
         post.views+=1 #Someone looked at it
         
         if post.type=="JOB":

@@ -4,6 +4,7 @@ from sqlalchemy.orm import mapped_column
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from utils import users
 from sqlalchemy import func, select
+from sqlalchemy import and_, or_, case
 
 import time
 # declarative base class
@@ -73,7 +74,7 @@ class User(BaseTable):
     def has_followed(self,id):
         return f" {id} " in self.following
     
-    @has_blocked.expression
+    @has_followed.expression
     def has_followed(cls,id):
         return cls.following.contains(" "+str(id)+" ")
     
@@ -86,8 +87,9 @@ class User(BaseTable):
     
     @trendy_ranking.expression
     def trendy_ranking(cls):
-        return func.coalesce(select(func.sum(Post.likes)/(func.sum(Post.dislikes)+1)).where(Post.author==cls.id),0)
-
+        return func.coalesce(select(func.sum(Post.likes)/(func.sum(Post.dislikes)+1)).where(Post.author==cls.id),0) #None or 0
+        
+                
 class Post(BaseTable):
     __tablename__ = "POSTS"
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -112,6 +114,29 @@ class Post(BaseTable):
     @hybrid_property
     def trendy_ranking(self):
         return self.views/(self.dislikes+1)
+        
+    public_post_types=["JOB","AD","POST","COMMENT"]
+    
+    @hybrid_property
+    def is_viewable(self,user):
+        if self.type not in self.public_post_types:
+            if ((self.type=="INBOX" and self.author==user.id) or self.parent_post==user.inbox): #Either user's inbox or message in that inbox
+                return True
+            else:
+                return False
+        else:
+            return True
+    
+    @is_viewable.expression
+    def is_viewable(cls,user):
+        case(
+            (cls.type.notin_(cls.public_post_types), True),
+            else_=
+                case(
+                (or_(and_(cls.type=="INBOX",cls.author==user.id),cls.parent_post==user.inbox),True),
+                else_=False
+                )
+           )
 
 class Balance(BaseTable):
     __tablename__="BALANCE"
