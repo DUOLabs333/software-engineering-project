@@ -43,6 +43,9 @@ def search():
         
         keywords=[tables.Post.text.regex_match(rf"\b{word}\b") for word in keywords] #May relax this to a simple "contains" if regex is too computationally expensive
         
+        if len(keywords)==0:
+            keywords=[True] #If no keywords are given, implicitly allow everything
+            
         query=select(tables.Post.id).where(tables.Post.author.in_(authors) & or_(*keywords) & (tables.Post.likes >= likes[0]) & (tables.Post.likes <= likes[1]) & (tables.Post.dislikes >= dislikes[0]) & (tables.Post.dislikes <= dislikes[1]) & ~(user.has_blocked(tables.Post.author)) & tables.Post.id < before & tables.Post.is_viewable(user) & tables.Post.type.in_(types)).order_by(functools.reduce(operator.add, [p.cast(Integer) for p in keywords]).desc()).limit(limit) #Order by number of keywords satisfied
         
         result["posts"]=session.scalars(query).all()
