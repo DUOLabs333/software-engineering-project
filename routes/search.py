@@ -37,16 +37,21 @@ def search():
     with Session(common.database) as session:
         user=users.getUser(uid,session)
         
-        query=select(tables.User.id).where(tables.User.username.in_(authors))
+        if authors is None:
+            authors=True
+        else:
+            query=select(tables.User.id).where(tables.User.username.in_(authors))
+            authors=session.scalars(query).all()
+            authors=tables.Post.author.in_(authors)
         
-        authors=session.scalars(query).all()
+        #keywords=[tables.Post.text.regex_match(rf"\b{word}\b") for word in keywords] #May relax this to a simple "contains" if regex is too computationally expensive
         
-        keywords=[tables.Post.text.regex_match(rf"\b{word}\b") for word in keywords] #May relax this to a simple "contains" if regex is too computationally expensive
+        if keywords is None:  #If no keywords are given, implicitly allow everything
+            keywords=[True]
+        else:
+            keywords=[tables.Post.keywords.contains(f" {word} ") for word in keywords]
         
-        if len(keywords)==0:
-            keywords=[True] #If no keywords are given, implicitly allow everything
-            
-        query=select(tables.Post.id).where(tables.Post.author.in_(authors) & or_(*keywords) & (tables.Post.likes >= likes[0]) & (tables.Post.likes <= likes[1]) & (tables.Post.dislikes >= dislikes[0]) & (tables.Post.dislikes <= dislikes[1]) & ~(user.has_blocked(tables.Post.author)) & tables.Post.id < before & tables.Post.is_viewable(user) & tables.Post.type.in_(types)).order_by(functools.reduce(operator.add, [p.cast(Integer) for p in keywords]).desc()).limit(limit) #Order by number of keywords satisfied
+        query=select(tables.Post.id).where(authors & or_(*keywords) & (tables.Post.likes >= likes[0]) & (tables.Post.likes <= likes[1]) & (tables.Post.dislikes >= dislikes[0]) & (tables.Post.dislikes <= dislikes[1]) & ~(user.has_blocked(tables.Post.author)) & tables.Post.id < before & tables.Post.is_viewable(user) & tables.Post.type.in_(types)).order_by(functools.reduce(operator.add, [p.cast(Integer) for p in keywords]).desc()).limit(limit) #Order by number of keywords satisfied
         
         result["posts"]=session.scalars(query).all()
         result["before"]=common.last(result["posts"]) #New pagination parameter
