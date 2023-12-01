@@ -15,14 +15,14 @@ def jobs_list():
     result={}
     
     uid=request.json["uid"]
-    before=request.json.get("before",float("inf"))
+    before=request.json["before"] or float("inf")
     limit=request.json.get("limit",20)
     with Session(common.database) as session:
         user=users.getUser(uid,session)
         query=select(tables.Post.id).where((tables.Post.type=="JOB") & ~(tables.Post.hidden) & (tables.Post.author!=user.id) & ~(user.applied.contains(" "+str(tables.Post.id)+"|")) & (tables.Post.id < before)).order_by(desc(tables.Post.id)).limit(limit)
         
         result["posts"]=session.scalars(query).all()
-        result["before"]=result["posts"][-1] #New pagination id
+        result["before"]=common.last(result["posts"]) #New pagination parameter
     
     return result
 

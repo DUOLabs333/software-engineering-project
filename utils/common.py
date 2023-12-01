@@ -44,3 +44,9 @@ def authenticate(func): #There is a possible race-condition with two etc. /likes
        else:
            return func(*args,**kwargs)
    return wrapper
+
+def last(lst):
+    if len(lst)==0:
+        return None
+    else:
+        return lst[-1]
