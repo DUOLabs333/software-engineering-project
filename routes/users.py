@@ -57,21 +57,12 @@ def create():
     if type not in ["SURFER","ORDINARY","CORPORATE"]:
         result["error"]="INVALID_USER_TYPE"
         return result
-    
-    user.type=0   
+        
     user.addType(getattr(user,type))
-    
-    for attr in ["following","blocked","liked_posts","disliked_posts"]:
-        setattr(user,attr,common.toStringList([]))
-    
-    for attr in ["tips"]:
-        setattr(user,attr,0)
     
     user.avatar=""
     
     with Session(common.database) as session:
-        user.inbox=0 #Placeholder, so we can add it without it failing the 'NOT NULL' constraint
-        user.profile=0 #See above
         
         session.add(user)
         session.commit()

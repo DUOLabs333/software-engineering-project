@@ -18,16 +18,16 @@ class User(BaseTable):
     username: Mapped[str]
     password_hash: Mapped[str]
     creation_time: Mapped[int]
-    type: Mapped[int]
-    following: Mapped[str]
-    blocked: Mapped[str]
-    tips: Mapped[float]
-    avatar: Mapped[str]
-    liked_posts: Mapped[str]
-    disliked_posts: Mapped[str]
-    inbox: Mapped[int]
-    profile: Mapped[int]
-    applied: Mapped[int]
+    type: Mapped[int] = mapped_column(default=0)
+    following: Mapped[str] = mapped_column(default="")
+    blocked: Mapped[str] = mapped_column(default="")
+    tips: Mapped[float] = mapped_column(default=0)
+    avatar: Mapped[str] = mapped_column(default="")
+    liked_posts: Mapped[str] = mapped_column(default="")
+    disliked_posts: Mapped[str] = mapped_column(default="")
+    inbox: Mapped[int] = mapped_column(default=0)
+    profile: Mapped[int] = mapped_column(default=0)
+    applied: Mapped[int] = mapped_column(default="")
     
     SURFER=0
     ORDINARY=1

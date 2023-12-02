@@ -1,5 +1,5 @@
 
-from routes import *
+from routes import users, posts, jobs, search
 
 from utils.common import app
 

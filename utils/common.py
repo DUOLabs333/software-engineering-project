@@ -18,7 +18,7 @@ CORS(app)
 
 import functools
 def fromStringList(string):
-    return string.removeprefix(" ").removesuffix(" ").split(" ")
+    return string.removeprefix(" ").removesuffix(" ").split(" ") if string!="" else []
 
 def toStringList(lst):
     return " "+(" ".join(lst))+" "

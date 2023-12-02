@@ -1,5 +1,5 @@
 from utils import common,users,tables
-from common import app
+from utils.common import app
 from flask import request
 from sqlalchemy.orm import Session
 from sqlalchemy.types import Integer
