@@ -37,7 +37,6 @@ class User(BaseTable):
     BANNED = 5
     
     def addType(self,_type):
-        print(self.type)
         if (self.hasType(self.CORPORATE) or self.hasType(self.SUPER)) and _type==self.TRENDY: #SUPER and CORPORATE Users can not become TRENDY
             return
         elif _type in [self.CORPORATE,self.SUPER]: #If TRENDY users become CORPORATE or SUPER, they can no longer be TRENDY
@@ -50,7 +49,7 @@ class User(BaseTable):
     
     @hybrid_method
     def hasType(self,_type):
-        return (self.type & (1<<_type))==_type
+        return (self.type & (1<<_type))==(1<<_type)
     
     def listTypes(self):
         result=[]
@@ -58,6 +57,7 @@ class User(BaseTable):
             value=getattr(self,attr)
             if not(attr.isupper() and (not attr.startswith("_")) and (not attr.endswith("_")) and isinstance(value,int)):
                 continue
+            print(attr)
             if self.hasType(value):
                 result.append(attr)
         return result

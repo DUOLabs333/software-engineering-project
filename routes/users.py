@@ -57,7 +57,8 @@ def create():
     if type not in ["SURFER","ORDINARY","CORPORATE"]:
         result["error"]="INVALID_USER_TYPE"
         return result
-        
+    
+    user.type=0
     user.addType(getattr(user,type))
     
     user.avatar=""
