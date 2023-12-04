@@ -144,7 +144,7 @@ class Balance(BaseTable):
     __tablename__="BALANCE"
     
     id: Mapped[int] = mapped_column(primary_key=True,autoincrement=True)
-    balance: Mapped[float]
+    balance: Mapped[float] = mapped_column(default=0)
 
 class Upload(BaseTable):
     __tablename__="UPLOADS"
