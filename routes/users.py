@@ -148,7 +148,28 @@ def block():
     with Session(common.database) as session:
         user=users.getUser(uid,session)
         
+        if user.has_blocked(blocked_id):
+            result["error"]="ALREADY_BLOCKED"
+            return
         user.blocked=appendToStringList(user.blocked,blocked_id)
+        session.commit()
+    return result
+
+@app.route("/users/unblock", methods = ['POST'])
+@common.authenticate
+def unblock():
+    result={}
+
+    blocked_id=request.json["blocked_id"]
+        
+    uid=request.json["uid"]
+    with Session(common.database) as session:
+        user=users.getUser(uid,session)
+        if not user.has_blocked(blocked_id):
+            result["error"]="ALREADY_UNBLOCKED"
+            return
+        
+        user.blocked=removeFromStringList(user.blocked,blocked_id)
         session.commit()
     return result
     

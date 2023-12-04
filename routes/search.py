@@ -6,7 +6,7 @@ from sqlalchemy.types import Integer
 from sqlalchemy import select, or_
 import functools, operator
 
-@app.route("/search")
+@app.route("/search", methods=["POST"])
 @common.authenticate
 def search():
     result={}

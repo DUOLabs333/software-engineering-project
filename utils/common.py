@@ -27,6 +27,11 @@ def appendToStringList(lst,val):
     lst=fromStringList(lst)
     lst.append(str(val))
     return toStringList(lst)
+
+def removeFromStringList(lst,val):
+    lst=fromStringList(lst)
+    lst.remove(str(val))
+    return toStringList(lst)
  
 def authenticate(func): #There is a possible race-condition with two etc. /likes, where two different processes will be working on two different lists, and write two lists. The only way to do this is with dynamic Locks (one for each user) --- Subclass defaultdict to only delete when the lock's.__acquires<=0. Subclass Lock to keep track of __acquires. It doesn't totally eliminate race conditions, but it lowers the chance significantly. However, this isn't a thing in Python (Locks are gained through inheritance). Other languages like Go do not have this issue (they use threading, so sharing memory is easy).
    @functools.wraps(func)
