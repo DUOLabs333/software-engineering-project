@@ -99,7 +99,7 @@ def info():
                 continue
             elif col=="type":
                 value=user.listTypes()
-            elif col=="following":
+            elif col in ["following","liked_posts","disliked_posts","pictures","videos"]:
                 value=common.fromStringList(value)
             elif col in ["inbox","blocked","id"] and id!=uid:
                 continue

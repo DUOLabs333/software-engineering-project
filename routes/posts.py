@@ -1,4 +1,4 @@
-from utils import common, tables, users, balance, jobs
+from utils import common, tables, users, jobs
 
 from utils import posts
 
@@ -8,7 +8,7 @@ from flask import request, send_file
 from sqlalchemy import select, desc
 from sqlalchemy.orm import Session
 
-import base64, os, random, re, string
+import base64, os, random, string
 import multiprocessing
 from pathlib import Path
 
@@ -66,52 +66,16 @@ def create_post():
     
     data=request.json
     
-    taboo_word_count=0
-    words_in_post=re.findall(r"(?!'.*')\b[\w']+\b",data["text"])
-    extra_words=max(len(words_in_post)-20,0)
+    #Get which words were added to title,post. create will delete post, edit will revert post (make rollback object)
     
-    cost=0
+    error, data = posts.cleanPostData(None,data,user)
     
-    if user.hasType(user.CORPORATE):
-        cost=1*words_in_post #$1 for every word
-    elif user.hasType(user.ORDINARY) or user.hasType(user.TRENDY):
-        cost=0.1*extra_words #$0.10 for every word over 20 words. Also need to check for images.
-    else:
-        result["error"]="INSUFFICIENT_PERMISSION" #Can't post without being at least OU
-        return result
-              
-    taboo_list=open("taboo_list.txt","r+").read().splitlines()
-    taboo_list=[word.strip() for word in taboo_list]
-    taboo_list=set(taboo_list)
-    
-    for word in words_in_post:
-        if word in taboo_list:
-            data["text"]=re.sub(rf"(?!'.*')\b[{re.escape(word)}']+\b","****",data["text"],1) #Only replace the instance that we care about
-            taboo_word_count+=1
-        if taboo_word_count>2:
-            #Warn --- set that up
-            result["error"]="TOO_MANY_TABOOS"
-            return
-    
-    if len(data["keywords"])>3:
-        result["error"]="TOO_MANY_KEYWORDS"
+    if error!=None:
+        result["error"]=error
         return
-    
-    if (data["type"] in ["AD","JOB"]) and (not user.hasType(user.CORPORATE)): #Non-CUs can not post ads.
-        result["error"]="NOT_CORPORATE_USER"
-        return
-       
+        
     result["id"]=posts.createPost(data)
     
-    if cost>0: #If you can't pay, posts get deleted
-        return_val=balance.RemoveFromBalance(uid,cost)
-        if return_val==-1:
-            result["error"]="NOT_ENOUGH_MONEY"
-            with Session(common.database) as session:
-                post=posts.getPost(result["id"],session)
-                session.delete(post)
-                session.commit()
-            return
     return result
 
 @app.route("/posts/info", methods = ['POST'])
@@ -165,22 +129,25 @@ def post_edit():
     if not user.hasType(user.ORDINARY):
         result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
+    
         
     with Session(common.database) as session:
         post=posts.getPost(request.json["id"],session)
-        for key in ["title","keywords","text"]:
-            value=request.json[key]
-            
-            if not(hasattr(post, key)):
-                continue
-            elif key=="keywords":
-                if len(value)>3:
-                    result["error"]="TOO_MANY_KEYWORDS"
-                    return
-                else:
-                    value=common.toStringList(value)
+        if post is None:
+            result["error"]="POST_DOES_NOT_EXIST"
+            return 
+        
+        data=request.json
+        error, data=posts.cleanPostData(data["id"],data,user)
+        
+        if error!=None:
+            result["error"]=error
+            return
                 
-            setattr(post,key,value)
+        for field in post.editable_fields:
+            value=data.get(field,getattr(post,field)) #Get new value, otherwise, just get what was there before
+            setattr(post,field,value)
+            
         session.commit(post)
             
     return result

@@ -45,7 +45,7 @@ class User(BaseTable):
         self.type|= (1<<_type)
     
     def removeType(self,_type):
-        self.type&= ~(1<<type)
+        self.type&= ~(1<<_type)
     
     @hybrid_method
     def hasType(self,_type):
@@ -101,11 +101,13 @@ class Post(BaseTable):
     views: Mapped[int]
     likes: Mapped[int]
     dislikes: Mapped[int]
-    has_picture: Mapped[bool]
-    has_video: Mapped[bool]
+    pictures: Mapped[str] = mapped_column(default="")
+    videos: Mapped[str] =  mapped_column(default="")
     type: Mapped[int]
     parent_post: Mapped[int] = mapped_column(nullable=True,index=True)
     hidden: Mapped[bool] = mapped_column(default=False)
+    
+    editable_fields=["text","title", "keywords"] #Fields that are directly editable by users (pictures/videos don't count becuase users can't influence the content directly
     
     @hybrid_property
     def is_trendy(self):
