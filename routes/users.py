@@ -5,7 +5,7 @@ from utils import users, posts
 
 from flask import request
 
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, not_
 
 from sqlalchemy.orm import Session
 import multiprocessing
@@ -338,7 +338,7 @@ def top3posts():
     result["posts"]=[]
     
     user=users.getUser(request.json["uid"])
-    query=select(tables.Post.id).where(tables.Post.is_trendy & ~user.has_blocked(tables.Post.author)).order_by(desc(tables.Post.trendy_ranking)).limit(3)
+    query=select(tables.Post.id).where(tables.Post.is_trendy & not_(user.has_blocked(tables.Post.author))).order_by(desc(tables.Post.trendy_ranking)).limit(3)
     
     with Session(common.database) as session:
         result["posts"]=session.scalars(query).all()
@@ -353,7 +353,7 @@ def top3users():
     result["users"]=[]
     
     user=users.getUser(request.json["uid"])
-    query=select(tables.User.id).where(tables.User.hasType(user.TRENDY) & ~user.has_blocked(tables.Post.id)).order_by(desc(tables.User.trendy_ranking)).limit(3)
+    query=select(tables.User.id).where(tables.User.hasType(user.TRENDY) & not_(user.has_blocked(tables.Post.id))).order_by(desc(tables.User.trendy_ranking)).limit(3)
     
     with Session(common.database) as session:
         result["users"]=session.scalars(query).all()

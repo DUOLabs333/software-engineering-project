@@ -1,9 +1,10 @@
-from utils import common,users,tables
+from utils import common,users,tables, posts
 from utils.common import app
 from flask import request
 from sqlalchemy.orm import Session
 from sqlalchemy.types import Integer
-from sqlalchemy import select, or_
+from sqlalchemy import select, or_, not_, func, true
+from sqlalchemy.sql.functions import register_function
 import functools, operator
 
 @app.route("/search", methods=["POST"])
@@ -12,13 +13,7 @@ def search():
     result={}
     
     authors=request.json["authors"]
-    if not isinstance(authors, list):
-        authors=[authors]
-    
     keywords=request.json["keywords"]
-    if not isinstance(keywords, list):
-        keywords=[keywords]
-    
     likes=request.json["likes"]
     dislikes=request.json["dislikes"]
     types=request.json.get("types",["POST"])
@@ -28,8 +23,8 @@ def search():
         return
 
     for lst in [likes,dislikes]:
-        lst[0]=(likes[0] or float("-inf")) #Lower bound: None means -Inf
-        lst[1]=(likes[0] or float("inf")) #Upper bound: None means Inf
+        lst[0]=(lst[0] or float("-inf")) #Lower bound: None means -Inf
+        lst[1]=(lst[1] or float("inf")) #Upper bound: None means Inf
     
     uid=request.json["uid"]
     before=request.json["before"] or float("inf") #Pagination
@@ -38,20 +33,22 @@ def search():
         user=users.getUser(uid,session)
         
         if authors is None:
-            authors=True
+            authors=true()
         else:
             query=select(tables.User.id).where(tables.User.username.in_(authors))
             authors=session.scalars(query).all()
             authors=tables.Post.author.in_(authors)
         
         #keywords=[tables.Post.text.regex_match(rf"\b{word}\b") for word in keywords] #May relax this to a simple "contains" if regex is too computationally expensive
-        
+        #Replace ~ with not_
         if keywords is None:  #If no keywords are given, implicitly allow everything
-            keywords=[True]
+            keywords=[true()]
         else:
             keywords=[tables.Post.keywords.contains(f" {word} ") for word in keywords]
         
-        query=select(tables.Post.id).where(authors & or_(*keywords) & (tables.Post.likes >= likes[0]) & (tables.Post.likes <= likes[1]) & (tables.Post.dislikes >= dislikes[0]) & (tables.Post.dislikes <= dislikes[1]) & ~(user.has_blocked(tables.Post.author)) & tables.Post.id < before & tables.Post.is_viewable(user) & tables.Post.type.in_(types)).order_by(functools.reduce(operator.add, [p.cast(Integer) for p in keywords]).desc()).limit(limit) #Order by number of keywords satisfied
+        register_function("has_blocked",user.has_blocked)
+        
+        query=select(tables.Post.id).where(authors & or_(*keywords) & (tables.Post.likes >= likes[0]) & (tables.Post.likes <= likes[1]) & (tables.Post.dislikes >= dislikes[0]) & (tables.Post.dislikes <= dislikes[1]) & not_(func.has_blocked(tables.Post.author)) & (tables.Post.id < before) & tables.Post.is_viewable(user) & tables.Post.type.in_(types)).order_by(functools.reduce(operator.add, [p.cast(Integer) for p in keywords]).desc()).limit(limit) #Order by number of keywords satisfied
         
         result["posts"]=session.scalars(query).all()
         result["before"]=common.last(result["posts"]) #New pagination parameter

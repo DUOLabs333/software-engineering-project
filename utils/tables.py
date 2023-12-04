@@ -119,7 +119,7 @@ class Post(BaseTable):
         
     public_post_types=["JOB","AD","POST","COMMENT"]
     
-    @hybrid_property
+    @hybrid_method
     def is_viewable(self,user):
         if self.type not in self.public_post_types:
             if ((self.type=="INBOX" and self.author==user.id) or self.parent_post==user.inbox): #Either user's inbox or message in that inbox
@@ -131,8 +131,8 @@ class Post(BaseTable):
     
     @is_viewable.expression
     def is_viewable(cls,user):
-        case(
-            (cls.type.notin_(cls.public_post_types), True),
+        return case(
+            (cls.type.in_(cls.public_post_types), True),
             else_=
                 case(
                 (or_(and_(cls.type=="INBOX",cls.author==user.id),cls.parent_post==user.inbox),True),

@@ -5,7 +5,7 @@ from utils import posts
 from utils.common import app
 
 from flask import request, send_file
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, not_
 from sqlalchemy.orm import Session
 
 import base64, os, random, string
@@ -26,7 +26,7 @@ def homepage():
     user=users.getUser(uid)
     with Session(common.database) as session:
         
-        query=select(tables.Post.id).where(user.has_followed(tables.Post.author) & (tables.Post.id < before) & ~(user.has_blocked(tables.Post.author)) & (tables.Post.type=="POST") ).limit(limit).order_by(desc(tables.Post.id)) #Sort chronologically, not algorithmically --- one of the biggest problems with other social media sites
+        query=select(tables.Post.id).where(user.has_followed(tables.Post.author) & (tables.Post.id < before) & not_(user.has_blocked(tables.Post.author)) & (tables.Post.type=="POST") ).limit(limit).order_by(desc(tables.Post.id)) #Sort chronologically, not algorithmically --- one of the biggest problems with other social media sites
         
         result["posts"]=session.scalars(query).all()
         
@@ -46,7 +46,7 @@ def trending():
         result["posts"]=[]
         
         user=users.getUser(uid)
-        query=select(tables.Post.id).where((tables.Post.id < before) & ~(user.has_blocked(tables.Post.author)) & (tables.Post.is_trendy==True) ).limit(limit).order_by(desc(tables.Post.trendy_ranking))
+        query=select(tables.Post.id).where((tables.Post.id < before) & not_(user.has_blocked(tables.Post.author)) & (tables.Post.is_trendy==True) ).limit(limit).order_by(desc(tables.Post.trendy_ranking))
         
         result["posts"]=session.scalars(query).all()
         
