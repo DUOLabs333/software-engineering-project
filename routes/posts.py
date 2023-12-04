@@ -12,7 +12,7 @@ import base64, os, random, string
 import multiprocessing
 from pathlib import Path
 
-@app.route("/posts/homepage", methods = ['POST'])
+@app.route("/posts/homepage")
 @common.authenticate
 def homepage():
     result={}
@@ -31,7 +31,7 @@ def homepage():
         return result
         
             
-@app.route("/posts/trending", methods = ['POST'])
+@app.route("/posts/trending")
 @common.authenticate
 def trending():
     result={}
@@ -52,7 +52,7 @@ def trending():
         return result
 
 
-@app.route("/posts/create", methods = ['POST'])
+@app.route("/posts/create")
 @common.authenticate
 def create_post():
     result={}
@@ -77,7 +77,7 @@ def create_post():
     
     return result
 
-@app.route("/posts/info", methods = ['POST'])
+@app.route("/posts/info")
 @common.authenticate
 def post_info():
     result={}
@@ -118,7 +118,7 @@ def post_info():
         
     return result
 
-@app.route("/posts/edit", methods = ['POST'])
+@app.route("/posts/edit")
 @common.authenticate
 def post_edit():
     result={}
@@ -154,7 +154,7 @@ def post_edit():
             
     return result
     
-@app.route("/posts/delete", methods = ['POST'])
+@app.route("/posts/delete")
 @common.authenticate
 def post_delete():
     result={}
@@ -280,7 +280,7 @@ random_string = lambda N: ''.join(random.choices(string.ascii_uppercase + string
 
 upload_lock=multiprocessing.Lock()
 
-@app.route("/users/upload", methods = ['POST'])
+@app.route("/users/upload")
 @common.authenticate
 def image_upload():
     result={}
@@ -324,7 +324,7 @@ def image_upload():
         result["id"]=upload.id
         return result
 
-@app.route("/media", methods = ['POST'])
+@app.route("/media")
 def image():
     
     id=request.json["id"]

@@ -22,7 +22,7 @@ def checkIfUsernameExists(username): #You must have the USERS database locked, a
 
 #CRUD: Create, Read, Update, Delete
 
-@app.route("/users/create", methods = ['POST'])
+@app.route("/users/create")
 def create():
     result={}
     
@@ -78,7 +78,7 @@ def create():
             result["password_hash"]=user.password_hash
     return result
 
-@app.route("/users/info", methods = ['POST'])
+@app.route("/users/info")
 @common.authenticate
 def info():
     result={}
@@ -108,7 +108,7 @@ def info():
         
         return result
         
-@app.route("/users/modify", methods = ['POST'])
+@app.route("/users/modify")
 @common.authenticate
 def modify():
     result={}
@@ -138,7 +138,7 @@ def modify():
             session.commit()
         return result
 
-@app.route("/users/block", methods = ['POST'])
+@app.route("/users/block")
 @common.authenticate
 def block():
     result={}
@@ -156,7 +156,7 @@ def block():
         session.commit()
     return result
 
-@app.route("/users/unblock", methods = ['POST'])
+@app.route("/users/unblock")
 @common.authenticate
 def unblock():
     result={}
@@ -174,7 +174,7 @@ def unblock():
         session.commit()
     return result
     
-@app.route("/users/delete", methods = ['POST'])
+@app.route("/users/delete")
 @common.authenticate
 def delete():
     result={}
@@ -196,7 +196,7 @@ def delete():
         lock.release()
         return result
 
-@app.route("/users/signin", methods = ['POST'])
+@app.route("/users/signin")
 def signin():
     result={}
     with Session(common.database) as session:

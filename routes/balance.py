@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from utils.common import app
 from flask import request
 
-@app.route("/balance/init", methods=["POST"])
+@app.route("/balance/init")
 @common.authenticate
 def init():
     result={}
@@ -23,7 +23,7 @@ def init():
         
     return result
 
-@app.route("/balance/view",methods=["POST"])
+@app.route("/balance/view")
 @common.authenticate
 def view():
     result={}
@@ -37,7 +37,7 @@ def view():
     
     return result
 
-@app.route("/balance/import", methods=["POST"])
+@app.route("/balance/import")
 @common.authenticate
 def _import():
     result={}
@@ -54,7 +54,7 @@ def _import():
     
     return result
 
-@app.route("/balance/export", methods=["POST"]) #We don't want to trap people's money! (Maybe add a threshold to prevent paying CC fees for non-substantial exports
+@app.route("/balance/export") #We don't want to trap people's money! (Maybe add a threshold to prevent paying CC fees for non-substantial exports
 @common.authenticate
 def export():
     result={}

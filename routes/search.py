@@ -7,7 +7,7 @@ from sqlalchemy import select, or_, not_, func, true
 from sqlalchemy.sql.functions import register_function
 import functools, operator
 
-@app.route("/search", methods=["POST"])
+@app.route("/search")
 @common.authenticate
 def search():
     result={}

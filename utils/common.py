@@ -14,6 +14,18 @@ import utils.users as users
 
 app=Flask("backend_server")
 
+def post_wrap(func):
+    def wrapper(*args,**kwargs):
+        key="methods"
+        kwargs[key]=kwargs.get(key,[])
+        if key in kwargs:
+            if "POST" not in kwargs[key]:
+                kwargs[key].append("POST")
+        return func(*args,**kwargs)
+    return wrapper
+
+setattr(app,"route",post_wrap(app.route))
+            
 CORS(app)
 
 import functools
