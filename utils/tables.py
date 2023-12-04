@@ -111,7 +111,7 @@ class Post(BaseTable):
     
     @hybrid_property
     def is_trendy(self):
-        return self.views>10 & (self.likes>=3*self.dislikes) & (self.type=="POST") & (self.time_posted>time.time()-5*60*60)
+        return (self.views>10) & (self.likes>=3*self.dislikes) & (self.type=="POST") & (self.time_posted>time.time()-5*60*60)
     
     @hybrid_property
     def trendy_ranking(self):
