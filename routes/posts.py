@@ -12,23 +12,21 @@ import base64, os, random, string
 import multiprocessing
 from pathlib import Path
 
-lock=multiprocessing.Lock() #Not enough to use autoincrement ---- autoincrement doesn't neccessarily create monotonically increasing IDs, only unique ones. However, we need it in a specific order.
-
-
 @app.route("/posts/homepage", methods = ['POST'])
 @common.authenticate
 def homepage():
     result={}
     limit=request.json.get("limit",50)
-    before=request.json.get("before",float("inf"))
+    before=request.json.get("before",0)
     
     uid=request.json["uid"]
     user=users.getUser(uid)
     with Session(common.database) as session:
         
-        query=select(tables.Post.id).where(user.has_followed(tables.Post.author) & (tables.Post.id < before) & not_(user.has_blocked(tables.Post.author)) & (tables.Post.type=="POST") ).limit(limit).order_by(desc(tables.Post.id)) #Sort chronologically, not algorithmically --- one of the biggest problems with other social media sites
+        query=select(tables.Post.id).where(user.has_followed(tables.Post.author) & not_(user.has_blocked(tables.Post.author)) & (tables.Post.type=="POST") ).order_by(tables.Post.time_posted.desc()).offset(before).limit(limit) #Sort chronologically, not algorithmically --- one of the biggest problems with other social media sites
         
         result["posts"]=session.scalars(query).all()
+        result["before"]=before+len(result["posts"])
         
         return result
         
@@ -39,16 +37,17 @@ def trending():
     result={}
     
     limit=request.json.get("limit",50)
-    before=request.json.get("before",float("inf"))
+    before=request.json.get("before",0)
     
     uid=request.json["uid"]
     with Session(common.database) as session:
         result["posts"]=[]
         
         user=users.getUser(uid)
-        query=select(tables.Post.id).where((tables.Post.id < before) & not_(user.has_blocked(tables.Post.author)) & (tables.Post.is_trendy==True) ).limit(limit).order_by(desc(tables.Post.trendy_ranking))
+        query=select(tables.Post.id).where(not_(user.has_blocked(tables.Post.author)) & (tables.Post.is_trendy==True) ).order_by(desc(tables.Post.trendy_ranking)).offset(before).limit(limit)
         
         result["posts"]=session.scalars(query).all()
+        result["before"]=before+len(result["posts"])
         
         return result
 
@@ -160,8 +159,6 @@ def post_edit():
 def post_delete():
     result={}
     
-    lock.acquire()
-    
     post_id=request.json.get("id",type=int)
     
     with Session(common.database) as session:
@@ -186,12 +183,10 @@ def post_delete():
         
         if not can_delete:
             result["error"]="INSUFFICIENT_PERMISSION"
-            lock.release()
             return result
         else:
             session.delete(post)
             session.commit()
-            lock.release()
             return result
             
 @app.route("/posts/like")

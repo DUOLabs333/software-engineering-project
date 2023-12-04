@@ -4,7 +4,7 @@ from sqlalchemy.orm import mapped_column
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from utils import users
 from sqlalchemy import func, select
-from sqlalchemy import and_, or_, case
+from sqlalchemy import or_, case
 
 import time
 # declarative base class
@@ -94,7 +94,7 @@ class User(BaseTable):
                 
 class Post(BaseTable):
     __tablename__ = "POSTS"
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True,autoincrement=True)
     author: Mapped[int] = mapped_column(index=True)
     time_posted: Mapped[int]
     keywords: Mapped[str]

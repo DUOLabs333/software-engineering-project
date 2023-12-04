@@ -2,10 +2,8 @@ import utils.common as common
 from utils import balance
 import utils.tables as tables
 from sqlalchemy import select
-from sqlalchemy import desc
 from sqlalchemy.orm import Session
 import re, time
-from routes.posts import lock
 
 def getPost(post_id,session=None):
     session_exists=True
@@ -24,9 +22,7 @@ def createPost(data):
     post=tables.Post()
    
     with Session(common.database) as session:
-        lock.acquire()
         
-        post.id=(session.scalars(select(tables.Post.id).order_by(desc(tables.Post.id)).limit(1)).first() or 0)+1 #Get next biggest id
         post.time_posted=int(time.time())
         
         for attr in ["author","text"]:
@@ -45,7 +41,6 @@ def createPost(data):
         
         session.add(post)
         session.commit()
-        lock.release()
         return post.id
    
 def cleanPostData(id,data,user):

@@ -48,7 +48,7 @@ def search():
             keywords=[tables.Post.keywords.contains(f" {word} ") for word in keywords]
         
         if sort=="NEWEST":
-            sort=tables.Post.id
+            sort=tables.Post.time_posted
         elif sort=="BEST":
             sort=functools.reduce(operator.add, [p.cast(Integer) for p in keywords])
         
