@@ -77,8 +77,8 @@ def cleanPostData(id,data,user):
         words_in_data+=num_of_words(str(data[attr]))
     
     limit=20
-    extra_words_in_post=max(len(words_in_post)-limit,0)
-    extra_words_in_data=max(len(words_in_data)-limit,0)
+    extra_words_in_post=max(words_in_post-limit,0)
+    extra_words_in_data=max(words_in_data-limit,0)
     
     #Charging logic
     if extra_words_in_data>0:
