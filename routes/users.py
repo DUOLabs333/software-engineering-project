@@ -101,7 +101,7 @@ def info():
                 value=user.listTypes()
             elif col in ["following","liked_posts","disliked_posts","pictures","videos"]:
                 value=common.fromStringList(value)
-            elif col in ["inbox","blocked","id"] and id!=uid:
+            elif col not in user.public_fields and id!=uid:
                 continue
             result[col]=value
         
