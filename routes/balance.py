@@ -13,7 +13,7 @@ def init():
     with Session(common.database) as session:
         bal=tables.Balance()
         
-        if balance.GetBalance(request.json["uid"])!=-1:
+        if balance.GetBalance(request.json["uid"]) is not None:
             result["error"]="BALANCE_ALREADY_EXISTS"
             return result
         
@@ -29,7 +29,7 @@ def view():
     result={}
     
     bal=balance.GetBalance(request.json["uid"])
-    if bal==-1:
+    if bal is None:
         result["error"]="BALANCE_DOES_NOT_EXIST"
         return result
     else:
@@ -43,7 +43,7 @@ def _import():
     result={}
     
     bal=balance.GetBalance(request.json["uid"])
-    if bal==-1:
+    if bal is None:
         result["error"]="BALANCE_DOES_NOT_EXIST"
         return result
     else:
@@ -57,7 +57,7 @@ def export():
     result={}
     
     bal=balance.GetBalance(request.json["uid"])
-    if bal==-1:
+    if bal is None:
         result["error"]="BALANCE_DOES_NOT_EXIST"
         return result
     else:
