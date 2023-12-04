@@ -111,6 +111,8 @@ class Post(BaseTable):
     
     editable_fields=["text","title", "keywords"] #Fields that are directly editable by users (pictures/videos don't count becuase users can't influence the content directly
     
+    public_types=["JOB","AD","POST","COMMENT"]
+    
     @hybrid_property
     def is_trendy(self):
         return (self.views>10) & (self.likes>=3*self.dislikes) & (self.type=="POST") & (self.time_posted>time.time()-5*60*60)
@@ -118,12 +120,11 @@ class Post(BaseTable):
     @hybrid_property
     def trendy_ranking(self):
         return self.views/(self.dislikes+1)
-        
-    public_post_types=["JOB","AD","POST","COMMENT"]
+    
     
     @hybrid_method
     def is_viewable(self,user):
-        if self.type not in self.public_post_types:
+        if self.type not in self.public_types:
             if ((self.author==user.id) or self.parent_post==user.inbox): #Either user's inbox or message in that inbox
                 return True
             else:
@@ -134,7 +135,7 @@ class Post(BaseTable):
     @is_viewable.expression
     def is_viewable(cls,user):
         return case(
-            (cls.type.in_(cls.public_post_types), True),
+            (cls.type.in_(cls.public_types), True),
             else_=
                 case(
                 (or_(cls.author==user.id,cls.parent_post==user.inbox),True),

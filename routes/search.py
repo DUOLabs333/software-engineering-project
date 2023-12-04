@@ -19,7 +19,7 @@ def search():
     types=request.json["types"] or ["POST"]
     sort=request.json["sort"] or "NEWEST"
     
-    if not (all(type in tables.Post.public_post_types for type in types)):
+    if not (all(type in tables.Post.public_types for type in types)):
         result["error"]="NON_PUBLIC_POST_TYPE"
         return
 
