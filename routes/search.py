@@ -1,4 +1,4 @@
-from utils import common,users,tables, posts
+from utils import common,users,tables
 from utils.common import app
 from flask import request
 from sqlalchemy.orm import Session
