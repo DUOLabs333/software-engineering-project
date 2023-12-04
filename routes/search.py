@@ -28,7 +28,7 @@ def search():
         lst[1]=(lst[1] or float("inf")) #Upper bound: None means Inf
         
     uid=request.json["uid"]
-    before=request.json["before"] or float("inf") #Pagination
+    before=request.json["before"] or 0 #Pagination
     limit=request.json.get("limit",10)
     with Session(common.database) as session:
         user=users.getUser(uid,session)
@@ -54,8 +54,8 @@ def search():
         
         register_function("has_blocked",user.has_blocked)
         
-        query=select(tables.Post.id).where(authors & or_(*keywords) & (tables.Post.likes >= likes[0]) & (tables.Post.likes <= likes[1]) & (tables.Post.dislikes >= dislikes[0]) & (tables.Post.dislikes <= dislikes[1]) & not_(func.has_blocked(tables.Post.author)) & tables.Post.is_viewable(user) & tables.Post.type.in_(types)).order_by(sort.desc()).where(tables.Post.id < before).limit(limit) #Order by number of keywords satisfied
+        query=select(tables.Post.id).where(authors & or_(*keywords) & (tables.Post.likes >= likes[0]) & (tables.Post.likes <= likes[1]) & (tables.Post.dislikes >= dislikes[0]) & (tables.Post.dislikes <= dislikes[1]) & not_(func.has_blocked(tables.Post.author)) & tables.Post.is_viewable(user) & tables.Post.type.in_(types)).order_by(sort.desc()).offset(before).limit(limit) #Order by number of keywords satisfied
         
         result["posts"]=session.scalars(query).all()
-        result["before"]=common.last(result["posts"]) #New pagination parameter
+        result["before"]=before+len(result["posts"]) #New pagination parameter
     return result
