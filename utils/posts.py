@@ -16,7 +16,7 @@ def getPost(post_id,session=None):
     query=select(tables.Post).where(tables.Post.id==post_id)
     result=session.scalars(query).one_or_none()
     
-    if session_exists:
+    if not session_exists:
         session.close() 
     return result
 

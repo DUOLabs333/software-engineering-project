@@ -11,7 +11,7 @@ def getUser(user_id,session=None):
     query=select(tables.User).where(tables.User.id==user_id)
     result=session.scalars(query).one_or_none()
     
-    if session_exists:
+    if not session_exists:
         session.close() 
     return result
 
