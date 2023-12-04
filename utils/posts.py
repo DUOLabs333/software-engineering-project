@@ -86,6 +86,8 @@ def cleanPostData(id,data,user):
             extra_words=extra_words_in_data #... charge for the words that got you over
         else: #If you're originally above,...
             extra_words=max(words_in_data-words_in_post,0) #... charge for all net added words
+    else:
+        extra_words=0
 
     cost=0
     if user.hasType(user.CORPORATE):
@@ -109,17 +111,24 @@ def cleanPostData(id,data,user):
     
     for attr in editable_fields:
         value=data[attr]
+        was_list=False
+        if isinstance(value,list):
+            value=common.toStringList(value)
+            was_list=True
+            
         for word in set(word_match(value)):
             if word in taboo_list:
                 taboo_word_count+=len(word_match(value,word))
                 value=re.sub(word_match_regex(re.escape(word)) ,"****",data[attr])
-                data[attr]=value
-                
+                    
             if taboo_word_count>2:
                 #Warn --- set that up
                 error="TOO_MANY_TABOOS"
                 return error, data
-    
+        
+        if was_list:
+            value=common.fromStringList(value)
+        data[attr]=value
     if len(data["keywords"])>3:
         error="TOO_MANY_KEYWORDS"
         return error, data
