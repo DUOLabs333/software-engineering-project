@@ -16,7 +16,8 @@ def search():
     keywords=request.json["keywords"]
     likes=request.json["likes"]
     dislikes=request.json["dislikes"]
-    types=request.json.get("types",["POST"])
+    types=request.json["types"] or ["POST"]
+    sort=request.json["sort"] or "NEWEST"
     
     if not (all(type in tables.Post.public_post_types for type in types)):
         result["error"]="NON_PUBLIC_POST_TYPE"
@@ -25,7 +26,7 @@ def search():
     for lst in [likes,dislikes]:
         lst[0]=(lst[0] or float("-inf")) #Lower bound: None means -Inf
         lst[1]=(lst[1] or float("inf")) #Upper bound: None means Inf
-    
+        
     uid=request.json["uid"]
     before=request.json["before"] or float("inf") #Pagination
     limit=request.json.get("limit",10)
@@ -46,9 +47,14 @@ def search():
         else:
             keywords=[tables.Post.keywords.contains(f" {word} ") for word in keywords]
         
+        if sort=="NEWEST":
+            sort=tables.Post.id
+        elif sort=="BEST":
+            sort=functools.reduce(operator.add, [p.cast(Integer) for p in keywords])
+        
         register_function("has_blocked",user.has_blocked)
         
-        query=select(tables.Post.id).where(authors & or_(*keywords) & (tables.Post.likes >= likes[0]) & (tables.Post.likes <= likes[1]) & (tables.Post.dislikes >= dislikes[0]) & (tables.Post.dislikes <= dislikes[1]) & not_(func.has_blocked(tables.Post.author)) & (tables.Post.id < before) & tables.Post.is_viewable(user) & tables.Post.type.in_(types)).order_by(tables.Post.id.desc(), functools.reduce(operator.add, [p.cast(Integer) for p in keywords]).desc()).limit(limit) #Order by number of keywords satisfied
+        query=select(tables.Post.id).where(authors & or_(*keywords) & (tables.Post.likes >= likes[0]) & (tables.Post.likes <= likes[1]) & (tables.Post.dislikes >= dislikes[0]) & (tables.Post.dislikes <= dislikes[1]) & not_(func.has_blocked(tables.Post.author)) & tables.Post.is_viewable(user) & tables.Post.type.in_(types)).order_by(sort.desc()).where(tables.Post.id < before).limit(limit) #Order by number of keywords satisfied
         
         result["posts"]=session.scalars(query).all()
         result["before"]=common.last(result["posts"]) #New pagination parameter
