@@ -146,6 +146,9 @@ def post_edit():
                 
         for field in post.editable_fields:
             value=data.get(field,getattr(post,field)) #Get new value, otherwise, just get what was there before
+            if isinstance(value, list):
+                value=common.toStringList(value)
+                
             setattr(post,field,value)
             
         session.commit(post)
@@ -323,10 +326,10 @@ def image_upload():
         with open(upload.path.replace("/",os.path.sep),"wb+") as f: #Windows. That is all I'll say.
             f.write(base64.b64decode(data))
             
-        result["url"]=f"images/{upload.id}"
+        result["id"]=upload.id
         return result
 
-@app.route("/images/id", methods = ['POST'])
+@app.route("/media", methods = ['POST'])
 def image():
     
     id=request.json["id"]

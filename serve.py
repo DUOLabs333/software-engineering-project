@@ -1,5 +1,5 @@
 
-from routes import users, posts, jobs, search
+from routes import users, posts, jobs, search, balance
 
 from utils.common import app
 

@@ -133,4 +133,5 @@ def cleanPostData(id,data,user):
         if return_val==-1: #If you can't pay
             error="NOT_ENOUGH_MONEY"
             return error, data
+    
     return error, data

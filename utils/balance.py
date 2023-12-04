@@ -44,3 +44,14 @@ def RegisterBalance(id):
     with Session(common.database) as session:
         session.add(balance)
         session.commit()
+
+def import_from_CC(data):
+    AddToBalance(data["uid"],data["amount"])
+    return 0 #Since this is a school project, we're not going to actually implement CC verification/ checking for balance
+
+def export_to_CC(data):
+    result=RemoveFromBalance(data["uid"],data["amount"])
+    if result==-1:
+        return -1
+    #Return -2 if some other error occurred
+    return 0 #See above

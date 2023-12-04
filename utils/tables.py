@@ -143,7 +143,7 @@ class Post(BaseTable):
 class Balance(BaseTable):
     __tablename__="BALANCE"
     
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True,autoincrement=True)
     balance: Mapped[float]
 
 class Upload(BaseTable):
