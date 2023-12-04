@@ -122,7 +122,7 @@ class Post(BaseTable):
     @hybrid_method
     def is_viewable(self,user):
         if self.type not in self.public_post_types:
-            if ((self.type=="INBOX" and self.author==user.id) or self.parent_post==user.inbox): #Either user's inbox or message in that inbox
+            if ((self.author==user.id) or self.parent_post==user.inbox): #Either user's inbox or message in that inbox
                 return True
             else:
                 return False
@@ -135,7 +135,7 @@ class Post(BaseTable):
             (cls.type.in_(cls.public_post_types), True),
             else_=
                 case(
-                (or_(and_(cls.type=="INBOX",cls.author==user.id),cls.parent_post==user.inbox),True),
+                (or_(cls.author==user.id,cls.parent_post==user.inbox),True),
                 else_=False
                 )
            )
