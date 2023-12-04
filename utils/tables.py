@@ -36,7 +36,7 @@ class User(BaseTable):
     SUPER = 4
     BANNED = 5
     
-    public_fields=["inbox","blocked","id"]
+    private_fields=["inbox","blocked","id"]
     
     def addType(self,_type):
         if (self.hasType(self.CORPORATE) or self.hasType(self.SUPER)) and _type==self.TRENDY: #SUPER and CORPORATE Users can not become TRENDY

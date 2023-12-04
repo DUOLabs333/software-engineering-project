@@ -94,14 +94,13 @@ def info():
         
         for col in user.__mapper__.attrs.keys():
             value=getattr(user,col)
-            
             if col=="password_hash":
                 continue
             elif col=="type":
                 value=user.listTypes()
             elif col in ["following","liked_posts","disliked_posts","pictures","videos"]:
                 value=common.fromStringList(value)
-            elif col not in user.public_fields and id!=uid:
+            elif col in user.private_fields and id!=uid:
                 continue
             result[col]=value
         
