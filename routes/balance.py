@@ -47,7 +47,10 @@ def _import():
         result["error"]="BALANCE_DOES_NOT_EXIST"
         return result
     else:
-        balance.import_from_CC(request.json)
+        error=balance.import_from_CC(request.json)
+        if error==-1:
+            result["error"]="UNKNOWN_ERROR"
+            return result
     
     return result
 

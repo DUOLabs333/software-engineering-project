@@ -317,7 +317,7 @@ def tip():
             result["error"]="TARGET_BALANCE_NOT_FOUND"
             return
         
-        if balance.RemoveFromBalance(user.id,amount)==-1:
+        if balance.RemoveFromBalance(user.id,amount)==None:
             result["error"]="BALANCE_TOO_SMALL"
             return
             
