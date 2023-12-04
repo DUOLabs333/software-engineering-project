@@ -28,7 +28,7 @@ def is_trendy(user):
         query=select(func.sum(tables.Post.likes)/(func.sum(tables.Post.dislikes)+1)).where(tables.Post.author==user.id)
         
         ratio=session.scalars(query).one_or_none() or 0
-        result&=(user.tips>100 or ratio>10) #received >$100 in tips or have >10 more likes than dislikes
+        result&=((user.tips>100) or (ratio>10)) #received >$100 in tips or have >10 more likes than dislikes
         
         query=select(tables.Post.id).where((tables.Post.author==user.id) & (tables.Post.is_trendy==True))
         
