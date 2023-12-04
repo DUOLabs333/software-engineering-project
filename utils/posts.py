@@ -74,7 +74,7 @@ def cleanPostData(id,data,user):
     words_in_data=0
     for attr in editable_fields:
         words_in_post+=num_of_words(getattr(post,attr))
-        words_in_data+=num_of_words(data[attr])
+        words_in_data+=num_of_words(str(data[attr]))
     
     limit=20
     extra_words_in_post=max(len(words_in_post)-limit,0)
