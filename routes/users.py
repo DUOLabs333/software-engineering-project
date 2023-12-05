@@ -390,3 +390,31 @@ def suggest():
     result["users"]=[_[0] for _ in heapq.nlargest(min(10,len(list_of_users)),list_of_users,key=lambda x: x[1])]
     
     return result
+
+
+
+@app.route("/users/warn", methods=["POST"])
+@common.authenticate
+def assign_warning():
+    result = {}
+
+    uid = request.json["uid"]
+    target_user = request.json["target_user"]
+    
+    with Session(common.database) as session:
+        issuer = users.getUser(uid, session)  # The SUPER user issuing the warning
+        recipient = users.getUser(target_user, session)  # The user to be warned
+
+        # Check if issuer is SUPER and recipient is not SUPER
+        if issuer.hasType(User.SUPER) and not recipient.hasType(User.SUPER):  #want to avoid a case where super user can just delete their own report against them by having super user not get reported
+            recipient.warnings += 1  # Increment the warnings count
+            recipient.time_of_last_warn = datetime.utcnow()  # Update the last warning time to now
+        else:
+            result["error"] = "INSUFFICIENT_PERMISSION_OR_INVALID_TARGET"
+            return result
+
+        session.commit()  
+
+    result["message"] = "Warning assigned successfully"
+    return result  
+

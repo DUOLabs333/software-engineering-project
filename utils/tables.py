@@ -5,6 +5,7 @@ from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from utils import users
 from sqlalchemy import func, select
 from sqlalchemy import and_, or_, case
+import datetime from datetime
 
 import time
 # declarative base class
@@ -28,7 +29,10 @@ class User(BaseTable):
     inbox: Mapped[int] = mapped_column(default=0)
     profile: Mapped[int] = mapped_column(default=0)
     applied: Mapped[int] = mapped_column(default="")
-    
+    fines: Mapped[int] = mapped_column(default=0)  #added fines for user
+    warnings: Mapped[int] = mapped_column(default=0)
+    time_of_last_warn: Mapped[datetime] = mapped_column(default="")  #time last warned
+
     SURFER=0
     ORDINARY=1
     TRENDY=2
@@ -117,7 +121,7 @@ class Post(BaseTable):
     def trendy_ranking(self):
         return self.views/(self.dislikes+1)
         
-    public_post_types=["JOB","AD","POST","COMMENT"]
+    public_post_types=["JOB","AD","POST","COMMENT", "REPORT", "DISPUTE"]
     
     @hybrid_method
     def is_viewable(self,user):
