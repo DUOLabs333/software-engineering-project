@@ -116,7 +116,7 @@ class Post(BaseTable):
     views: Mapped[int]
     likes: Mapped[int]
     dislikes: Mapped[int]
-    pictures: Mapped[str] = mapped_column(default="")
+    images: Mapped[str] = mapped_column(default="")
     videos: Mapped[str] =  mapped_column(default="")
     type: Mapped[int]
     parent_post: Mapped[int] = mapped_column(nullable=True,index=True)
