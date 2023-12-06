@@ -4,13 +4,14 @@ from utils import posts
 
 from utils.common import app
 
-from flask import request, send_file
+from flask import request, send_file, current_app, url_for, jsonify
 from sqlalchemy import select, desc, not_
 from sqlalchemy.orm import Session
 
 import base64, os, random, string
 import multiprocessing
 from pathlib import Path
+from werkzeug.utils import secure_filename
 
 @app.route("/posts/homepage")
 @common.authenticate
@@ -328,13 +329,14 @@ def image_upload():
 
 @app.route("/media")
 def image():
-    
-    id=request.json["id"]
-    with Session(common.database) as session:
-        path, type =session.execute(select(tables.Upload.path, tables.Upload.type).where(tables.Upload.id==id)).first()
-        path=path.replace("/",os.path.sep)
-        
-        return send_file(path, mimetype=type)
+    upload_folder = current_app.root_path + "/static/images"
+    print(upload_folder)
+    uploaded_img = request.files.get('image')  # Get the image that has been uploaded
+    img_name = secure_filename(uploaded_img.filename).lower()  # Get the name of the iamge
+    uploaded_img.save(os.path.join(upload_folder, img_name))  # Save that image to the appropriate directory
+    location = url_for('static', filename='images/' + img_name)
+    print("LOCATION: ", location)
+    return jsonify({'location': location})
         
     
     
