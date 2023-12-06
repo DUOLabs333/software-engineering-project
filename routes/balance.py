@@ -8,7 +8,6 @@ from flask import request
 #test if pr is working or not
 =======
 
->>>>>>> af6812bd927ecb1fd0abefb2917f6fc7e9f479dc
 @app.route("/balance/init")
 @common.authenticate
 def init():
