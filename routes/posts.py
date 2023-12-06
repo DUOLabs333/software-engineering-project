@@ -223,8 +223,9 @@ def like_post():
             liked_posts.append(str(post_id))
             user.liked_posts = common.toStringList(liked_posts)
         else:
-            liked_posts.remove(str(post_id)) #Reverse like
+            liked_posts.remove(str(post_id)) #Reverses like. Prevents duplication for /unlike
             user.liked_posts = common.toStringList(liked_posts)
+            post.likes -= 1
             
         session.commit()
         users.getUser(post.author).update_trendy_status() #Event handler
@@ -268,6 +269,7 @@ def dislike_post():
         else:
             disliked_posts.remove(str(post_id))
             user.disliked_posts = common.toStringList(disliked_posts)
+            post.dislikes -= 1
         
         session.commit()
         users.getUser(post.author).update_trendy_status() #Event handler
