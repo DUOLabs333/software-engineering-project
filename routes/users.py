@@ -56,7 +56,7 @@ def create():
     
     type=data.get("type","SURFER")
     
-    if type not in ["SURFER","ORDINARY","CORPORATE"]:
+    if (not isinstance(type,str)) or (type in ["SUPER","TRENDY"]):
         result["error"]="INVALID_USER_TYPE"
         return result
     
