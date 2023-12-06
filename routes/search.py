@@ -7,7 +7,7 @@ from sqlalchemy import select, or_, not_, func, true
 from sqlalchemy.sql.functions import register_function
 import functools, operator
 
-@app.route("/search", methods=["POST"])
+@app.route("/search")
 @common.authenticate
 def search():
     result={}
@@ -16,19 +16,20 @@ def search():
     keywords=request.json["keywords"]
     likes=request.json["likes"]
     dislikes=request.json["dislikes"]
-    types=request.json.get("types",["POST"])
+    types=request.json["types"] or ["POST"]
+    sort=request.json["sort"] or "NEWEST"
     
-    if not (all(type in tables.Post.public_post_types for type in types)):
+    if not (all(type in tables.Post.public_types for type in types)):
         result["error"]="NON_PUBLIC_POST_TYPE"
         return
 
     for lst in [likes,dislikes]:
         lst[0]=(lst[0] or float("-inf")) #Lower bound: None means -Inf
         lst[1]=(lst[1] or float("inf")) #Upper bound: None means Inf
-    
+        
     uid=request.json["uid"]
-    before=request.json["before"] or float("inf") #Pagination
-    limit=request.json.get("limit",float("10"))
+    before=request.json["before"] or 0 #Pagination
+    limit=request.json.get("limit",10)
     with Session(common.database) as session:
         user=users.getUser(uid,session)
         
@@ -46,10 +47,20 @@ def search():
         else:
             keywords=[tables.Post.keywords.contains(f" {word} ") for word in keywords]
         
+        if sort=="NEWEST":
+            sort=tables.Post.time_posted
+        elif sort=="BEST":
+            sort=functools.reduce(operator.add, [p.cast(Integer) for p in keywords])
+        
         register_function("has_blocked",user.has_blocked)
         
-        query=select(tables.Post.id).where(authors & or_(*keywords) & (tables.Post.likes >= likes[0]) & (tables.Post.likes <= likes[1]) & (tables.Post.dislikes >= dislikes[0]) & (tables.Post.dislikes <= dislikes[1]) & not_(func.has_blocked(tables.Post.author)) & (tables.Post.id < before) & tables.Post.is_viewable(user) & tables.Post.type.in_(types)).order_by(functools.reduce(operator.add, [p.cast(Integer) for p in keywords]).desc()).limit(limit) #Order by number of keywords satisfied
+        query=select(tables.Post.id).where(authors & or_(*keywords) & (tables.Post.likes >= likes[0]) & (tables.Post.likes <= likes[1]) & (tables.Post.dislikes >= dislikes[0]) & (tables.Post.dislikes <= dislikes[1]) & not_(func.has_blocked(tables.Post.author)) & tables.Post.is_viewable(user) & tables.Post.type.in_(types)).order_by(sort.desc()).offset(before).limit(limit) #Order by number of keywords satisfied
         
         result["posts"]=session.scalars(query).all()
+<<<<<<< HEAD
         result["before"]=common.last(result["posts"]) #New pagination parameter
     return result
+=======
+        result["before"]=before+len(result["posts"]) #New pagination parameter
+    return result
+>>>>>>> af6812bd927ecb1fd0abefb2917f6fc7e9f479dc

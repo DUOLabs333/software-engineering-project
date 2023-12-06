@@ -4,8 +4,12 @@ from sqlalchemy.orm import mapped_column
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from utils import users
 from sqlalchemy import func, select
+<<<<<<< HEAD
 from sqlalchemy import and_, or_, case
 import datetime from datetime
+=======
+from sqlalchemy import or_, case
+>>>>>>> af6812bd927ecb1fd0abefb2917f6fc7e9f479dc
 
 import time
 # declarative base class
@@ -38,18 +42,33 @@ class User(BaseTable):
     TRENDY=2
     CORPORATE=3
     SUPER = 4
-    BANNED = 5
+    ANON = 5
+    #Banned users will just have a type of 0
     
-    def addType(self,_type):
+    private_fields=["inbox","blocked","id"]
+    
+    type_ranking={SURFER:0, ANON:1, ORDINARY:2, TRENDY: 3, CORPORATE:3, SUPER:3} #May have to switch to a tree based structure later to deal with more complex heirarchies. This also models dependencies
+        
+    def addType(self,_type): #This assumes _type is exactly one type
         if (self.hasType(self.CORPORATE) or self.hasType(self.SUPER)) and _type==self.TRENDY: #SUPER and CORPORATE Users can not become TRENDY
             return
         elif _type in [self.CORPORATE,self.SUPER]: #If TRENDY users become CORPORATE or SUPER, they can no longer be TRENDY
             self.removeType(self.TRENDY)
-            
-        self.type|= (1<<_type)
+        
+        new_type=(1<<_type)
+        for key,value in self.type_ranking.items(): #Add all types lower than it (but not equal --- a TU does not need to same priviledges as a SU)
+            if value < self.type_ranking[_type]:
+                new_type|=(1<<key)
+                 
+        self.type|= new_type
     
     def removeType(self,_type):
-        self.type&= ~(1<<_type)
+        new_type=(1<<_type)
+        for key,value in self.type_ranking.items():
+            if value > self.type_ranking[_type]: #Remove all types higher than it (if you're no longer an OU, you can not be a TU any longer)
+                new_type|=(1<<key)
+                
+        self.type&= ~(1<<new_type)
     
     @hybrid_method
     def hasType(self,_type):
@@ -96,7 +115,7 @@ class User(BaseTable):
                 
 class Post(BaseTable):
     __tablename__ = "POSTS"
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(primary_key=True,autoincrement=True)
     author: Mapped[int] = mapped_column(index=True)
     time_posted: Mapped[int]
     keywords: Mapped[str]
@@ -113,20 +132,26 @@ class Post(BaseTable):
     
     editable_fields=["text","title", "keywords"] #Fields that are directly editable by users (pictures/videos don't count becuase users can't influence the content directly
     
+    public_types=["JOB","AD","POST","COMMENT"]
+    
     @hybrid_property
     def is_trendy(self):
-        return self.views>10 & (self.likes>=3*self.dislikes) & (self.type=="POST") & (self.time_posted>time.time()-5*60*60)
+        return (self.views>10) & (self.likes>=3*self.dislikes) & (self.type=="POST") & (self.time_posted>time.time()-5*60*60)
     
     @hybrid_property
     def trendy_ranking(self):
         return self.views/(self.dislikes+1)
+<<<<<<< HEAD
         
     public_post_types=["JOB","AD","POST","COMMENT", "REPORT", "DISPUTE"]
+=======
+    
+>>>>>>> af6812bd927ecb1fd0abefb2917f6fc7e9f479dc
     
     @hybrid_method
     def is_viewable(self,user):
-        if self.type not in self.public_post_types:
-            if ((self.type=="INBOX" and self.author==user.id) or self.parent_post==user.inbox): #Either user's inbox or message in that inbox
+        if self.type not in self.public_types:
+            if ((self.author==user.id) or self.parent_post==user.inbox): #Either user's inbox or message in that inbox
                 return True
             else:
                 return False
@@ -136,10 +161,10 @@ class Post(BaseTable):
     @is_viewable.expression
     def is_viewable(cls,user):
         return case(
-            (cls.type.in_(cls.public_post_types), True),
+            (cls.type.in_(cls.public_types), True),
             else_=
                 case(
-                (or_(and_(cls.type=="INBOX",cls.author==user.id),cls.parent_post==user.inbox),True),
+                (or_(cls.author==user.id,cls.parent_post==user.inbox),True),
                 else_=False
                 )
            )
@@ -148,7 +173,7 @@ class Balance(BaseTable):
     __tablename__="BALANCE"
     
     id: Mapped[int] = mapped_column(primary_key=True,autoincrement=True)
-    balance: Mapped[float]
+    balance: Mapped[float] = mapped_column(default=0)
 
 class Upload(BaseTable):
     __tablename__="UPLOADS"

@@ -11,25 +11,37 @@ from sqlalchemy.orm import Session
 import base64, os, random, string
 import multiprocessing
 from pathlib import Path
+<<<<<<< HEAD
 import datetime from datetime
 lock=multiprocessing.Lock() #Not enough to use autoincrement ---- autoincrement doesn't neccessarily create monotonically increasing IDs, only unique ones. However, we need it in a specific order.
 
 
 @app.route("/posts/homepage", methods = ['POST'])
+=======
+
+@app.route("/posts/homepage")
+>>>>>>> af6812bd927ecb1fd0abefb2917f6fc7e9f479dc
 @common.authenticate
 def homepage():
     result={}
     limit=request.json.get("limit",50)
-    before=request.json.get("before",float("inf"))
+    before=request.json.get("before",0)
     
     uid=request.json["uid"]
     user=users.getUser(uid)
     with Session(common.database) as session:
         
+<<<<<<< HEAD
         post_query=select(tables.Post.id).where(user.has_followed(tables.Post.author) & (tables.Post.id < before) & not_(user.has_blocked(tables.Post.author)) & (tables.Post.type=="POST") ).limit(limit).order_by(desc(tables.Post.id)) #Sort chronologically, not algorithmically --- one of the biggest problems with other social media sites
        
         posts = session.scalars(post_query).all()  # Fetch regular posts
         result["posts"]=session.scalars(posts).all()
+=======
+        query=select(tables.Post.id).where(user.has_followed(tables.Post.author) & not_(user.has_blocked(tables.Post.author)) & (tables.Post.type=="POST") ).order_by(tables.Post.time_posted.desc()).offset(before).limit(limit) #Sort chronologically, not algorithmically --- one of the biggest problems with other social media sites
+        
+        result["posts"]=session.scalars(query).all()
+        result["before"]=before+len(result["posts"])
+>>>>>>> af6812bd927ecb1fd0abefb2917f6fc7e9f479dc
         
         return result
     
@@ -56,34 +68,35 @@ def reportpage():
     
  
             
-@app.route("/posts/trending", methods = ['POST'])
+@app.route("/posts/trending")
 @common.authenticate
 def trending():
     result={}
     
     limit=request.json.get("limit",50)
-    before=request.json.get("before",float("inf"))
+    before=request.json.get("before",0)
     
     uid=request.json["uid"]
     with Session(common.database) as session:
         result["posts"]=[]
         
         user=users.getUser(uid)
-        query=select(tables.Post.id).where((tables.Post.id < before) & not_(user.has_blocked(tables.Post.author)) & (tables.Post.is_trendy==True) ).limit(limit).order_by(desc(tables.Post.trendy_ranking))
+        query=select(tables.Post.id).where(not_(user.has_blocked(tables.Post.author)) & (tables.Post.is_trendy==True) ).order_by(desc(tables.Post.trendy_ranking)).offset(before).limit(limit)
         
         result["posts"]=session.scalars(query).all()
+        result["before"]=before+len(result["posts"])
         
         return result
 
 
-@app.route("/posts/create", methods = ['POST'])
+@app.route("/posts/create")
 @common.authenticate
 def create_post():
     result={}
     
     uid=request.json["uid"]
     user=users.getUser(uid)
-    if not user.hasType(user.ORDINARY):
+    if not user.hasType(user.ANON):
         result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
     
@@ -101,7 +114,7 @@ def create_post():
     
     return result
 
-@app.route("/posts/info", methods = ['POST'])
+@app.route("/posts/info")
 @common.authenticate
 def post_info():
     result={}
@@ -142,14 +155,14 @@ def post_info():
         
     return result
 
-@app.route("/posts/edit", methods = ['POST'])
+@app.route("/posts/edit")
 @common.authenticate
 def post_edit():
     result={}
     
     uid=request.json["uid"]
     user=users.getUser(uid)
-    if not user.hasType(user.ORDINARY):
+    if not user.hasType(user.ANON):
         result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
     
@@ -178,12 +191,10 @@ def post_edit():
             
     return result
     
-@app.route("/posts/delete", methods = ['POST'])
+@app.route("/posts/delete")
 @common.authenticate
 def post_delete():
     result={}
-    
-    lock.acquire()
     
     post_id=request.json.get("id",type=int)
     
@@ -209,12 +220,10 @@ def post_delete():
         
         if not can_delete:
             result["error"]="INSUFFICIENT_PERMISSION"
-            lock.release()
             return result
         else:
             session.delete(post)
             session.commit()
-            lock.release()
             return result
             
 @app.route("/posts/like")
@@ -251,8 +260,9 @@ def like_post():
             liked_posts.append(str(post_id))
             user.liked_posts = common.toStringList(liked_posts)
         else:
-            result["error"]="ALREADY_LIKED"
-            return
+            liked_posts.remove(str(post_id)) #Reverses like. Prevents duplication for /unlike
+            user.liked_posts = common.toStringList(liked_posts)
+            post.likes -= 1
             
         session.commit()
         users.getUser(post.author).update_trendy_status() #Event handler
@@ -294,8 +304,9 @@ def dislike_post():
             disliked_posts.append(str(post_id))
             user.disliked_posts = common.toStringList(disliked_posts)
         else:
-            result["error"]="ALREADY_DISLIKED"
-            return
+            disliked_posts.remove(str(post_id))
+            user.disliked_posts = common.toStringList(disliked_posts)
+            post.dislikes -= 1
         
         session.commit()
         users.getUser(post.author).update_trendy_status() #Event handler
@@ -308,7 +319,7 @@ random_string = lambda N: ''.join(random.choices(string.ascii_uppercase + string
 
 upload_lock=multiprocessing.Lock()
 
-@app.route("/users/upload", methods = ['POST'])
+@app.route("/users/upload")
 @common.authenticate
 def image_upload():
     result={}
@@ -352,7 +363,7 @@ def image_upload():
         result["id"]=upload.id
         return result
 
-@app.route("/media", methods = ['POST'])
+@app.route("/media")
 def image():
     
     id=request.json["id"]

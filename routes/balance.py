@@ -4,7 +4,11 @@ from utils import common, balance, tables
 from sqlalchemy.orm import Session
 from utils.common import app
 from flask import request
+<<<<<<< HEAD
 #test if pr is working or not
+=======
+
+>>>>>>> af6812bd927ecb1fd0abefb2917f6fc7e9f479dc
 @app.route("/balance/init")
 @common.authenticate
 def init():
