@@ -11,16 +11,11 @@ from sqlalchemy.orm import Session
 import base64, os, random, string
 import multiprocessing
 from pathlib import Path
-<<<<<<< HEAD
 import datetime from datetime
 lock=multiprocessing.Lock() #Not enough to use autoincrement ---- autoincrement doesn't neccessarily create monotonically increasing IDs, only unique ones. However, we need it in a specific order.
 
 
 @app.route("/posts/homepage", methods = ['POST'])
-=======
-
-@app.route("/posts/homepage")
->>>>>>> af6812bd927ecb1fd0abefb2917f6fc7e9f479dc
 @common.authenticate
 def homepage():
     result={}
@@ -31,17 +26,10 @@ def homepage():
     user=users.getUser(uid)
     with Session(common.database) as session:
         
-<<<<<<< HEAD
         post_query=select(tables.Post.id).where(user.has_followed(tables.Post.author) & (tables.Post.id < before) & not_(user.has_blocked(tables.Post.author)) & (tables.Post.type=="POST") ).limit(limit).order_by(desc(tables.Post.id)) #Sort chronologically, not algorithmically --- one of the biggest problems with other social media sites
        
         posts = session.scalars(post_query).all()  # Fetch regular posts
         result["posts"]=session.scalars(posts).all()
-=======
-        query=select(tables.Post.id).where(user.has_followed(tables.Post.author) & not_(user.has_blocked(tables.Post.author)) & (tables.Post.type=="POST") ).order_by(tables.Post.time_posted.desc()).offset(before).limit(limit) #Sort chronologically, not algorithmically --- one of the biggest problems with other social media sites
-        
-        result["posts"]=session.scalars(query).all()
-        result["before"]=before+len(result["posts"])
->>>>>>> af6812bd927ecb1fd0abefb2917f6fc7e9f479dc
         
         return result
     
@@ -68,7 +56,7 @@ def reportpage():
     
  
             
-@app.route("/posts/trending")
+@app.route("/posts/trending", methods = ['POST'])
 @common.authenticate
 def trending():
     result={}

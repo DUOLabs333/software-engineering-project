@@ -63,4 +63,3 @@ def search():
 =======
         result["before"]=before+len(result["posts"]) #New pagination parameter
     return result
->>>>>>> af6812bd927ecb1fd0abefb2917f6fc7e9f479dc

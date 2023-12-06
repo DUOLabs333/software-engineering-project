@@ -4,12 +4,8 @@ from sqlalchemy.orm import mapped_column
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from utils import users
 from sqlalchemy import func, select
-<<<<<<< HEAD
 from sqlalchemy import and_, or_, case
 import datetime from datetime
-=======
-from sqlalchemy import or_, case
->>>>>>> af6812bd927ecb1fd0abefb2917f6fc7e9f479dc
 
 import time
 # declarative base class
@@ -141,12 +137,8 @@ class Post(BaseTable):
     @hybrid_property
     def trendy_ranking(self):
         return self.views/(self.dislikes+1)
-<<<<<<< HEAD
         
     public_post_types=["JOB","AD","POST","COMMENT", "REPORT", "DISPUTE"]
-=======
-    
->>>>>>> af6812bd927ecb1fd0abefb2917f6fc7e9f479dc
     
     @hybrid_method
     def is_viewable(self,user):
