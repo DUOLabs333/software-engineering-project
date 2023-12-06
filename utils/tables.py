@@ -34,20 +34,33 @@ class User(BaseTable):
     TRENDY=2
     CORPORATE=3
     SUPER = 4
-    BANNED = 5
+    ANON = 5
+    #Banned users will just have a type of 0
     
     private_fields=["inbox","blocked","id"]
     
-    def addType(self,_type):
+    type_ranking={SURFER:0, ANON:1, ORDINARY:2, TRENDY: 3, CORPORATE:3, SUPER:3} #May have to switch to a tree based structure later to deal with more complex heirarchies. This also models dependencies
+        
+    def addType(self,_type): #This assumes _type is exactly one type
         if (self.hasType(self.CORPORATE) or self.hasType(self.SUPER)) and _type==self.TRENDY: #SUPER and CORPORATE Users can not become TRENDY
             return
         elif _type in [self.CORPORATE,self.SUPER]: #If TRENDY users become CORPORATE or SUPER, they can no longer be TRENDY
             self.removeType(self.TRENDY)
-            
-        self.type|= (1<<_type)
+        
+        new_type=(1<<_type)
+        for key,value in self.type_ranking.items(): #Add all types lower than it (but not equal --- a TU does not need to same priviledges as a SU)
+            if value < self.type_ranking[_type]:
+                new_type|=(1<<key)
+                 
+        self.type|= new_type
     
     def removeType(self,_type):
-        self.type&= ~(1<<_type)
+        new_type=(1<<_type)
+        for key,value in self.type_ranking.items():
+            if value > self.type_ranking[_type]: #Remove all types higher than it (if you're no longer an OU, you can not be a TU any longer)
+                new_type|=(1<<key)
+                
+        self.type&= ~(1<<new_type)
     
     @hybrid_method
     def hasType(self,_type):

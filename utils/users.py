@@ -38,6 +38,8 @@ def is_trendy(user):
         
         result &= (len(session.scalars(query).all())<=3) #Must have at most three warnings
         
+        result &= user.hasType(user.ORDINARY)
+        
     return result
 
 def update_trendy_status(user):

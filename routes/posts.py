@@ -59,7 +59,7 @@ def create_post():
     
     uid=request.json["uid"]
     user=users.getUser(uid)
-    if not user.hasType(user.ORDINARY):
+    if not user.hasType(user.ANON):
         result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
     
@@ -125,7 +125,7 @@ def post_edit():
     
     uid=request.json["uid"]
     user=users.getUser(uid)
-    if not user.hasType(user.ORDINARY):
+    if not user.hasType(user.ANON):
         result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
     

@@ -37,6 +37,8 @@ def create():
             if not checkIfUsernameExists(data["username"]):
                 break
         data["password_hash"]=''.join(random.choices(string.ascii_uppercase + string.digits, k=256))
+        
+        data["type"]="ANON"
     
     username=data["username"]
     
