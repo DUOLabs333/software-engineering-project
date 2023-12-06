@@ -50,21 +50,21 @@ def jobs_apply():
         
         if (applied_idx>=0) and (int(applied[applied_idx][1])>time.time()-(4*60)): #Appplied less than 4 minutes ago
             result["error"]="APPLIED_RECENTLY"
-            return
+            return result
             
         if post.hidden: #Can't apply to a hidden post
             result["error"]="NOT_AVAILABLE"
             
         if not(user.hasType(user.ORDINARY)) or user.hasType(user.CORPORATE): #CUs and non-OUs should not be able to apply
             result["error"]="INSUFFICIENT_PERMISSION"
-            return
+            return result
         
         info=json.loads(post.text)
         r=requests.post(info["endpoint"],data=request.json["questions"]) #Endpoint must accept POST requests
         
         if r.status_code!=200: #Endpoint must return 200 upon success
             result["error"]="SUBMISSION_ERROR"
-            return
+            return result
         else:
             jobs.charge_for_post(post,session) #While we can't "reverse" a submission in case of a CU not being able to pay, we will hide the post for the next submission
             
@@ -73,6 +73,6 @@ def jobs_apply():
             user.applied=applied
             
             session.commit()
-            return
+            return result
             
         

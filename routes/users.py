@@ -153,7 +153,7 @@ def block():
         
         if user.has_blocked(blocked_id):
             result["error"]="ALREADY_BLOCKED"
-            return
+            return result
         user.blocked=appendToStringList(user.blocked,blocked_id)
         session.commit()
     return result
@@ -170,7 +170,7 @@ def unblock():
         user=users.getUser(uid,session)
         if not user.has_blocked(blocked_id):
             result["error"]="ALREADY_UNBLOCKED"
-            return
+            return result
         
         user.blocked=removeFromStringList(user.blocked,blocked_id)
         session.commit()
@@ -191,7 +191,7 @@ def delete():
         
         if not(user.hasType(user.SUPER) or (deleted_user.id==user.id)):
             result["error"]="INSUFFICIENT_PERMISSION"
-            return
+            return result
             
         session.delete(deleted_user)
         session.commit()
@@ -301,11 +301,11 @@ def tip():
     
     if uid==target_id:
         result["error"]="SELF_TIP"
-        return
+        return result
     
     if amount < 0:
         result["error"]="NEGATIVE_TIP"
-        return
+        return result
     
     with Session(common.database) as session: #Check if uid has enough and that target has account
         user=users.getUser(uid,session)
@@ -314,15 +314,15 @@ def tip():
         
         if user_balance is None:
             result["error"]="BALANCE_NOT_FOUND"
-            return
+            return result
         
         if balance.GetBalance(target_id) is None:
             result["error"]="TARGET_BALANCE_NOT_FOUND"
-            return
+            return result
         
         if balance.RemoveFromBalance(user.id,amount)==None:
             result["error"]="BALANCE_TOO_SMALL"
-            return
+            return result
             
         balance.AddToBalance(target_id,amount)
         

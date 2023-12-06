@@ -70,7 +70,7 @@ def export():
         return result
     elif error==-2:
         result["error"]="UNKNOWN_ERROR"
-        return
+        return result
         
     
     return result

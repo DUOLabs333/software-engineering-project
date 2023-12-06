@@ -77,7 +77,7 @@ def create_post():
     
     if error!=None:
         result["error"]=error
-        return
+        return result
         
     result["id"]=posts.createPost(data)
     
@@ -95,7 +95,7 @@ def post_info():
         
         if not post.is_viewable(user):
             result["error"]="INSUFFICIENT_PERMISSION"
-            return
+            return result
                 
         post.views+=1 #Someone looked at it
         
@@ -105,7 +105,7 @@ def post_info():
                 result["error"]="APPLICATION_NOT_AVAILABLE"
                 post.views-=1
                 session.commit()
-                return
+                return result
         session.commit()
         users.getUser(post.author).update_trendy_status() #Event handler
         session.commit()
@@ -147,7 +147,7 @@ def post_edit():
         
         if error!=None:
             result["error"]=error
-            return
+            return result
                 
         for field in post.editable_fields:
             value=data.get(field,getattr(post,field)) #Get new value, otherwise, just get what was there before

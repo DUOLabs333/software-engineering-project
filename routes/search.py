@@ -21,7 +21,7 @@ def search():
     
     if not (all(type in tables.Post.public_types for type in types)):
         result["error"]="NON_PUBLIC_POST_TYPE"
-        return
+        return result
 
     for lst in [likes,dislikes]:
         lst[0]=(lst[0] or float("-inf")) #Lower bound: None means -Inf
