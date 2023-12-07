@@ -88,9 +88,10 @@ def cleanPostData(id,data,user):
     if user.hasType(user.CORPORATE):
         extra_words=max(words_in_data-words_in_post,0)
         cost=1*extra_words #$1 for every word
-    elif user.hasType(user.ORDINARY) or user.hasType(user.TRENDY):
+    elif user.hasType(user.ANON):
         cost=0.1*extra_words #$0.10 for every word over 20 words (Also need to check for images)
     else:
+        print("Oh no!")
         error="INSUFFICIENT_PERMISSION" #Can't post without being at least OU
         return error, data
     

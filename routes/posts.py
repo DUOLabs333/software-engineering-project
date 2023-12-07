@@ -66,6 +66,7 @@ def create_post():
     uid=request.json["uid"]
     user=users.getUser(uid)
     if not user.hasType(user.ANON):
+        print(user.listTypes())
         result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
     
