@@ -70,13 +70,14 @@ def create_post():
     
     #Get which words were added to title,post. create will delete post, edit will revert post (make rollback object)
     
-    error, data = posts.cleanPostData(None,data,user)
+    cost, error, data = posts.cleanPostData(None,data,user)
     
     if error!=None:
         result["error"]=error
         return result
         
     result["id"]=posts.createPost(data)
+    request["cost"]=cost
     
     return result
 
@@ -140,7 +141,7 @@ def post_edit():
             return 
         
         data=request.json
-        error, data=posts.cleanPostData(data["id"],data,user)
+        cost, error, data=posts.cleanPostData(data["id"],data,user)
         
         if error!=None:
             result["error"]=error
@@ -154,7 +155,8 @@ def post_edit():
             setattr(post,field,value)
             
         session.commit(post)
-            
+    
+    result["cost"]=cost        
     return result
     
 @app.route("/posts/delete")
