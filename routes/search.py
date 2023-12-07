@@ -3,8 +3,7 @@ from utils.common import app
 from flask import request
 from sqlalchemy.orm import Session
 from sqlalchemy.types import Integer
-from sqlalchemy import select, or_, not_, func, true
-from sqlalchemy.sql.functions import register_function
+from sqlalchemy import select, or_, not_, true
 import functools, operator
 
 @app.route("/search")
@@ -18,6 +17,7 @@ def search():
     dislikes=request.json["dislikes"]
     types=request.json["types"] or ["POST"]
     sort=request.json["sort"] or "NEWEST"
+    parent=request.json["parent"]
     
     if not (all(type in tables.Post.public_types for type in types)):
         result["error"]="NON_PUBLIC_POST_TYPE"
@@ -52,8 +52,7 @@ def search():
         elif sort=="BEST":
             sort=functools.reduce(operator.add, [p.cast(Integer) for p in keywords])
         
-        register_function("has_blocked",user.has_blocked)
-        query=select(tables.Post.id).where(authors & or_(*keywords) & (tables.Post.likes >= likes[0]) & (tables.Post.likes <= likes[1]) & (tables.Post.dislikes >= dislikes[0]) & (tables.Post.dislikes <= dislikes[1]) & not_(func.has_blocked(tables.Post.author)) & tables.Post.is_viewable(user) & tables.Post.type.in_(types)).order_by(sort.desc()).offset(before).limit(limit) #Order by number of keywords satisfied
+        query=select(tables.Post.id).where(authors & or_(*keywords) & (tables.Post.likes >= likes[0]) & (tables.Post.likes <= likes[1]) & (tables.Post.dislikes >= dislikes[0]) & (tables.Post.dislikes <= dislikes[1]) & not_(user.has_blocked(tables.Post.author)) & tables.Post.is_viewable(user) & tables.Post.type.in_(types) & (tables.Post.parent==parent) ).order_by(sort.desc()).offset(before).limit(limit) #Order by number of keywords satisfied
         
         result["posts"]=session.scalars(query).all()
         result["before"]=before+len(result["posts"]) #New pagination parameter

@@ -5,8 +5,7 @@ from utils import users, posts
 
 from flask import request
 
-from sqlalchemy import select, desc, not_, func
-from sqlalchemy.sql.functions import register_function
+from sqlalchemy import select, desc, not_
 from sqlalchemy.orm import Session
 import multiprocessing
 import random, string,time, heapq
@@ -342,8 +341,7 @@ def top3posts():
     
     user=users.getUser(request.json["uid"])
     
-    register_function("has_blocked",user.has_blocked)
-    query=select(tables.Post.id).where(tables.User.hasType(tables.User.TRENDY) & not_( func.has_blocked(tables.Post.author))).order_by(desc(tables.Post.trendy_ranking)).limit(3)
+    query=select(tables.Post.id).where(tables.User.hasType(tables.User.TRENDY) & not_( user.has_blocked(tables.Post.author))).order_by(desc(tables.Post.trendy_ranking)).limit(3)
     
     with Session(common.database) as session:
         result["posts"]=session.scalars(query).all()
@@ -358,9 +356,8 @@ def top3users():
     result["users"]=[]
     
     user=users.getUser(request.json["uid"])
-        
-    register_function("has_blocked",user.has_blocked)
-    query=select(tables.User.id).where(tables.User.hasType(user.TRENDY) & not_(func.has_blocked(tables.User.id))).order_by(desc(tables.User.trendy_ranking)).limit(3)
+    
+    query=select(tables.User.id).where(tables.User.hasType(user.TRENDY) & not_(user.has_blocked(tables.User.id))).order_by(desc(tables.User.trendy_ranking)).limit(3)
     
     with Session(common.database) as session:
         result["users"]=session.scalars(query).all()

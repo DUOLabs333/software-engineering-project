@@ -3,8 +3,9 @@ from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from utils import users
-from sqlalchemy import func, select
+from sqlalchemy import func, select, literal
 from sqlalchemy import or_, case
+from sqlalchemy.types import String
 
 import time
 # declarative base class
@@ -77,21 +78,26 @@ class User(BaseTable):
                 result.append(attr)
         return result
     
+    def _contains(self,a,b): #Code to dispatch proper lookup depending on the types of a and b
+        a_str=isinstance(a,str)
+        b_int=isinstance(b,int)
+        
+        if a_str and b_int:
+            return f" {b} " in a
+        elif a_str and (not b_int):
+            return literal(a).contains(" "+b.cast(String)+" ")
+        elif (not a_str) and b_int:
+            return a.contains(f" {b} ")
+        elif (not a_str) and (not b_int):
+            return a.contains(" "+b.cast(String)+" ")
+            
     @hybrid_method
     def has_blocked(self,id):
-        return f" {id} " in self.blocked
-    
-    @has_blocked.expression
-    def has_blocked(cls,id):
-        return cls.blocked.contains(" "+str(id)+" ")
+        return self._contains(self.blocked,id)
     
     @hybrid_method
     def has_followed(self,id):
-        return f" {id} " in self.following
-    
-    @has_followed.expression
-    def has_followed(cls,id):
-        return cls.following.contains(" "+str(id)+" ")
+        return self._contains(self.following,id)
     
     def update_trendy_status(self):
         users.update_trendy_status(self)
@@ -119,7 +125,7 @@ class Post(BaseTable):
     pictures: Mapped[str] = mapped_column(default="")
     videos: Mapped[str] =  mapped_column(default="")
     type: Mapped[int]
-    parent_post: Mapped[int] = mapped_column(nullable=True,index=True)
+    parent: Mapped[int] = mapped_column(nullable=True,index=True)
     hidden: Mapped[bool] = mapped_column(default=False)
     
     editable_fields=["text","title", "keywords"] #Fields that are directly editable by users (pictures/videos don't count becuase users can't influence the content directly
@@ -138,7 +144,7 @@ class Post(BaseTable):
     @hybrid_method
     def is_viewable(self,user):
         if self.type not in self.public_types:
-            if ((self.author==user.id) or self.parent_post==user.inbox): #Either user's inbox or message in that inbox
+            if ((self.author==user.id) or self.parent==user.inbox): #Either user's inbox or message in that inbox
                 return True
             else:
                 return False
@@ -151,7 +157,7 @@ class Post(BaseTable):
             (cls.type.in_(cls.public_types), True),
             else_=
                 case(
-                (or_(cls.author==user.id,cls.parent_post==user.inbox),True),
+                (or_(cls.author==user.id,cls.parent==user.inbox),True),
                 else_=False
                 )
            )

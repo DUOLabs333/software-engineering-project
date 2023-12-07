@@ -30,7 +30,7 @@ def createPost(data):
         
         post.keywords=common.toStringList(data.get("keywords",[]))
         
-        post.parent_post=data.get("parent_post",None)
+        post.parent=data.get("parent",None)
         post.type=data.get("type","POST")
         
         for attr in ["views","likes","dislikes"]:
