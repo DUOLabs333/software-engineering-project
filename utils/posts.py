@@ -55,7 +55,7 @@ def cleanPostData(id,data,user):
     editable_fields=list(set(data.keys()).intersection(set(editable_fields)))
     
     if post is None: #Doesn't exist yet
-        post=tables.User()
+        post=tables.Post()
         for attr in editable_fields:
             setattr(post,attr,"")
     
