@@ -3,9 +3,9 @@ from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from utils import users
-from sqlalchemy import func, select
-from sqlalchemy import and_, or_, case
-import datetime from datetime
+from sqlalchemy import func, select, literal
+from sqlalchemy import or_, case
+from sqlalchemy.types import String
 
 import time
 # declarative base class
