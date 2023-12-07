@@ -30,8 +30,6 @@ class User(BaseTable):
     profile: Mapped[int] = mapped_column(default=0)
     applied: Mapped[int] = mapped_column(default="")
     fines: Mapped[int] = mapped_column(default=0)  #added fines for user
-    warnings: Mapped[int] = mapped_column(default=0)
-    time_of_last_warn: Mapped[datetime] = mapped_column(default="")  #time last warned
 
     SURFER=0
     ORDINARY=1
