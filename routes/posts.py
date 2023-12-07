@@ -327,7 +327,7 @@ def image_upload():
         result["id"]=upload.id
         return result
 
-@app.route("/media")
+@app.route("/upload_image")
 def image():
     upload_folder = current_app.root_path + "/static/images"
     print(upload_folder)
