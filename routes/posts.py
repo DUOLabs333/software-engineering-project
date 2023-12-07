@@ -115,7 +115,7 @@ def post_info():
         for col in post.__mapper__.attrs.keys():
             value=getattr(post,col)
             
-            if col=="keywords":
+            if col in ["keywords","videos","images"]:
                 value=common.fromStringList(value)
                 
             result[col]=value
