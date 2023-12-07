@@ -56,7 +56,7 @@ def cleanPostData(id,data,user):
     
     if post is None: #Doesn't exist yet
         post=tables.Post()
-        for attr in editable_fields:
+        for attr in editable_fields+["images","videos"]:
             setattr(post,attr,"")
     
     #Only charge for net added words --- you should pay for deleting words
