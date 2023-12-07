@@ -5,8 +5,8 @@ from utils import posts
 from utils.common import app
 
 from flask import request, send_file
-from sqlalchemy import select, desc, not_, func
-from sqlalchemy.sql.functions import register_function
+from sqlalchemy import select, desc, not_
+
 from sqlalchemy.orm import Session
 
 import base64, os, random, string
@@ -17,17 +17,14 @@ from pathlib import Path
 @common.authenticate
 def homepage():
     result={}
-    limit=request.json.get("limit",50)
-    before=request.json.get("before",0)
+    limit=request.json.get("limit",50) or 50
+    before=request.json.get("before",0) or 0
     
     uid=request.json["uid"]
     user=users.getUser(uid)
     with Session(common.database) as session:
-        
-        register_function("has_blocked",user.has_blocked)
-        register_function("has_followed",user.has_followed)
-        
-        query=select(tables.Post.id).where(func.has_followed(tables.Post.author) & not_(func.has_blocked(tables.Post.author)) & (tables.Post.type=="POST") ).order_by(tables.Post.time_posted.desc()).offset(before).limit(limit) #Sort chronologically, not algorithmically --- one of the biggest problems with other social media sites
+                
+        query=select(tables.Post.id).where(user.has_followed(tables.Post.author) & not_(user.has_blocked(tables.Post.author)) & (tables.Post.type=="POST")).order_by(tables.Post.time_posted.desc()).offset(before).limit(limit) #Sort chronologically, not algorithmically --- one of the biggest problems with other social media sites
         
         result["posts"]=session.scalars(query).all()
         result["before"]=before+len(result["posts"])
@@ -49,8 +46,7 @@ def trending():
         
         user=users.getUser(uid)
         
-        register_function("has_blocked",user.has_blocked)
-        query=select(tables.Post.id).where(not_(func.has_blocked(tables.Post.author)) & (tables.Post.is_trendy==True) ).order_by(desc(tables.Post.trendy_ranking)).offset(before).limit(limit)
+        query=select(tables.Post.id).where(not_(user.has_blocked(tables.Post.author)) & (tables.Post.is_trendy==True) ).order_by(desc(tables.Post.trendy_ranking)).offset(before).limit(limit)
         
         result["posts"]=session.scalars(query).all()
         result["before"]=before+len(result["posts"])
@@ -74,13 +70,14 @@ def create_post():
     
     #Get which words were added to title,post. create will delete post, edit will revert post (make rollback object)
     
-    error, data = posts.cleanPostData(None,data,user)
+    cost, error, data = posts.cleanPostData(None,data,user)
     
     if error!=None:
         result["error"]=error
         return result
         
     result["id"]=posts.createPost(data)
+    result["cost"]=cost
     
     return result
 
@@ -144,7 +141,7 @@ def post_edit():
             return 
         
         data=request.json
-        error, data=posts.cleanPostData(data["id"],data,user)
+        cost, error, data=posts.cleanPostData(data["id"],data,user)
         
         if error!=None:
             result["error"]=error
@@ -158,7 +155,8 @@ def post_edit():
             setattr(post,field,value)
             
         session.commit(post)
-            
+    
+    result["cost"]=cost        
     return result
     
 @app.route("/posts/delete")
@@ -178,7 +176,7 @@ def post_delete():
         if post.type=="INBOX":
             can_delete=False
         elif post.type=="COMMENT":
-            parent_post=posts.getPost(post.parent_id)
+            parent_post=posts.getPost(post.parent)
             if parent_post.author==uid:
                 can_delete=True
             
