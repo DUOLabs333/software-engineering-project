@@ -5,17 +5,15 @@ from utils import posts
 from utils.common import app
 
 from flask import request, send_file
-from sqlalchemy import select, desc, not_
+from sqlalchemy import select, desc, not_, func
+from sqlalchemy.sql.functions import register_function
 from sqlalchemy.orm import Session
 
 import base64, os, random, string
 import multiprocessing
 from pathlib import Path
-import datetime from datetime
-lock=multiprocessing.Lock() #Not enough to use autoincrement ---- autoincrement doesn't neccessarily create monotonically increasing IDs, only unique ones. However, we need it in a specific order.
 
-
-@app.route("/posts/homepage", methods = ['POST'])
+@app.route("/posts/homepage")
 @common.authenticate
 def homepage():
     result={}
@@ -26,37 +24,18 @@ def homepage():
     user=users.getUser(uid)
     with Session(common.database) as session:
         
-        post_query=select(tables.Post.id).where(user.has_followed(tables.Post.author) & (tables.Post.id < before) & not_(user.has_blocked(tables.Post.author)) & (tables.Post.type=="POST") ).limit(limit).order_by(desc(tables.Post.id)) #Sort chronologically, not algorithmically --- one of the biggest problems with other social media sites
-       
-        posts = session.scalars(post_query).all()  # Fetch regular posts
-        result["posts"]=session.scalars(posts).all()
+        register_function("has_blocked",user.has_blocked)
+        register_function("has_followed",user.has_followed)
+        
+        query=select(tables.Post.id).where(func.has_followed(tables.Post.author) & not_(func.has_blocked(tables.Post.author)) & (tables.Post.type=="POST") ).order_by(tables.Post.time_posted.desc()).offset(before).limit(limit) #Sort chronologically, not algorithmically --- one of the biggest problems with other social media sites
+        
+        result["posts"]=session.scalars(query).all()
+        result["before"]=before+len(result["posts"])
         
         return result
-    
-
-@app.route("/posts/reportpage", methods = ['POST'])
-@common.authenticate
-def reportpage():
-    result={}
-    limit=request.json.get("limit",50)
-    before=request.json.get("before",float("inf"))
-    
-    uid=request.json["uid"]
-    user=users.getUser(uid)
-    with Session(common.database) as session:
         
-        report_query = select(tables.Post.id).where(user.has_followed(tables.Post.author) & (tables.Post.id < before) & not_(user.has_blocked(tables.Post.author)) & (tables.Post.type == "REPORT")).limit(limit).order_by(desc(tables.Post.id))
-        posts = session.scalars(report_query).all()  # Fetch report posts
-        result["reports"]=session.scalars(posts).all()
-        
-        return result   
-
-
-
-    
- 
             
-@app.route("/posts/trending", methods = ['POST'])
+@app.route("/posts/trending")
 @common.authenticate
 def trending():
     result={}
@@ -69,7 +48,9 @@ def trending():
         result["posts"]=[]
         
         user=users.getUser(uid)
-        query=select(tables.Post.id).where(not_(user.has_blocked(tables.Post.author)) & (tables.Post.is_trendy==True) ).order_by(desc(tables.Post.trendy_ranking)).offset(before).limit(limit)
+        
+        register_function("has_blocked",user.has_blocked)
+        query=select(tables.Post.id).where(not_(func.has_blocked(tables.Post.author)) & (tables.Post.is_trendy==True) ).order_by(desc(tables.Post.trendy_ranking)).offset(before).limit(limit)
         
         result["posts"]=session.scalars(query).all()
         result["before"]=before+len(result["posts"])
@@ -85,6 +66,7 @@ def create_post():
     uid=request.json["uid"]
     user=users.getUser(uid)
     if not user.hasType(user.ANON):
+        print(user.listTypes())
         result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
     
@@ -96,7 +78,7 @@ def create_post():
     
     if error!=None:
         result["error"]=error
-        return
+        return result
         
     result["id"]=posts.createPost(data)
     
@@ -114,7 +96,7 @@ def post_info():
         
         if not post.is_viewable(user):
             result["error"]="INSUFFICIENT_PERMISSION"
-            return
+            return result
                 
         post.views+=1 #Someone looked at it
         
@@ -124,7 +106,7 @@ def post_info():
                 result["error"]="APPLICATION_NOT_AVAILABLE"
                 post.views-=1
                 session.commit()
-                return
+                return result
         session.commit()
         users.getUser(post.author).update_trendy_status() #Event handler
         session.commit()
@@ -166,7 +148,7 @@ def post_edit():
         
         if error!=None:
             result["error"]=error
-            return
+            return result
                 
         for field in post.editable_fields:
             value=data.get(field,getattr(post,field)) #Get new value, otherwise, just get what was there before
@@ -362,137 +344,6 @@ def image():
         return send_file(path, mimetype=type)
         
     
-@app.route("/posts/reports", methods=['POST'])
-@common.authenticate
-def report_post():
-    result = {}
-
-    uid = request.json["uid"]
-    target_user = request.json["target_user"]
-    report_text = request.json["report_text"]
-   
-    with Session(common.database) as session:
-        complainer = users.getUser(uid, session)        #user making report
-        complainee = users.getUser(target_user, session)  # The user to be reported
-        report_data = {
-                "author": uid,
-                "text": "Report by User (ID: {}) against(ID: {}) :\n{}".format(complainer.id,complainee.id, report_text), #report by complainer against complainee and then report text
-                "type": "REPORT",  
-            }
-            
-        # Clean the report data as we would for creating a regular post
-        error, data = posts.cleanPostData(None, report_data, complainer)  #filter taboo
-        if error!=None:
-            result["error"]=error
-            return
-            
-        # Create the report post
-        result["id"] = posts.createPost(data)
-            
-
-@app.route("/posts/reports/dispute", methods=['POST'])
-@common.authenticate        #this endpoint feels a little weird, i might have to work on it more
-def dispute_report():
-    result = {}
     
-    uid = request.json["uid"] #the user id for complainee
-    report_id = request.json["report_id"]  # ID of the report being disputed
-    dispute_text = request.json["dispute_text"]  # The text the complainee adds to dispute the report
     
-    with Session(common.database) as session:
-        complainee = users.getUser(uid, session) 
-        report = session.query(tables.Post).filter(tables.Post.id == report_id)
-
-        # Ensure the report exists and the complainee is the one being reported
-        if  report.author == complainee.id and report.type == "DISPUTE":
-            # Update the report text with the dispute information
-            report.text += "\n\nDispute by User (ID: {}):\n{}".format(complainee.id, dispute_text)
-            session.commit()
-            result["message"] = "Report dispute has been recorded."
-        else:
-            result["error"] = "Report not found or permission denied."
-            
     
-    return result
-
-
-@app.route("/posts/reports/approve", methods=['POST'])
-@common.authenticate
-def approve_report():
-    result = {}
-
-    uid = request.json["uid"]  # The user ID of the SUPER user approving the report
-    report_id = request.json["report_id"]  # ID of the report being approved
-    target_user = request.json["target_user"]
-
-    with Session(common.database) as session:
-        super_user = users.getUser(uid, session)
-        
-        # Check if the user is a SUPER user
-        if not super_user.hasType(User.SUPER):
-            result["error"] = "INSUFFICIENT_PERMISSION"
-            return result
-        
-        report = session.query(tables.Post).filter(tables.Post.id == report_id)
-
-        # Verify the report exists and it's of type 'REPORT'
-        if report and report.type == "REPORT":
-            complainee = users.getUser(target_user, session)  # Get the user being reported
-            complainee.warnings += 1  # Increment the warnings count
-            complainee.time_of_last_warn = datetime.utcnow()  # add warning based on current time
-
-            session.commit()
-            result["message"] = "Report has been approved and warning issued."
-        else:
-            result["error"] = "Report not found." #can't find report
-
-    return result
-
-@app.route("/posts/reports/disapprove", methods=['POST'])
-@common.authenticate
-def disapprove_report():
-    result = {}
-
-    uid = request.json["uid"]  # The user ID of the SUPER user approving the report
-    report_id = request.json["report_id"]  # ID of the report being approved
-    target_user = request.json["target_user"]
-
-    with Session(common.database) as session:
-        super_user = users.getUser(uid, session)
-        
-        # Check if the user is a SUPER user
-        if not super_user.hasType(User.SUPER):
-            result["error"] = "INSUFFICIENT_PERMISSION"
-            return result
-        
-        report = session.query(tables.Post).filter(tables.Post.id == report_id)
-        # Verify the report exists and it's of type 'REPORT'
-        if report and report.type == "REPORT":
-
-
-@app.route("/posts/reports/disapprove", methods=['POST'])    #mostly a copy of /posts/delete
-@common.authenticate
-def disapprove_report():
-    result = {}
-
-    lock.acquire()          #honestly no clue was lock does, just took it from delete endpoint
-
-    report_id = request.json.get("report_id", type=int)
-
-    with Session(common.database) as session:
-        report = posts.getPost(report_id)
-        uid = request.json["uid"]
-        user = users.getUser(uid)
-
-        
-        if report and report.type == "REPORT":  #check if report
-            if user.hasType(User.SUPER):        #check if super user
-                session.delete(report)    #delete
-                session.commit()    #save changes
-            else:
-                result["error"] = "INSUFFICIENT_PERMISSION"   #can't delete cause not super user
-                lock.release()               
-
-    lock.release()
-    result["message"] = "Report has been disapproved and deleted."   #deletion good
-    return result

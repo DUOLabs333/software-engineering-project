@@ -21,7 +21,7 @@ def search():
     
     if not (all(type in tables.Post.public_types for type in types)):
         result["error"]="NON_PUBLIC_POST_TYPE"
-        return
+        return result
 
     for lst in [likes,dislikes]:
         lst[0]=(lst[0] or float("-inf")) #Lower bound: None means -Inf
@@ -53,13 +53,8 @@ def search():
             sort=functools.reduce(operator.add, [p.cast(Integer) for p in keywords])
         
         register_function("has_blocked",user.has_blocked)
-        
         query=select(tables.Post.id).where(authors & or_(*keywords) & (tables.Post.likes >= likes[0]) & (tables.Post.likes <= likes[1]) & (tables.Post.dislikes >= dislikes[0]) & (tables.Post.dislikes <= dislikes[1]) & not_(func.has_blocked(tables.Post.author)) & tables.Post.is_viewable(user) & tables.Post.type.in_(types)).order_by(sort.desc()).offset(before).limit(limit) #Order by number of keywords satisfied
         
         result["posts"]=session.scalars(query).all()
-<<<<<<< HEAD
-        result["before"]=common.last(result["posts"]) #New pagination parameter
-    return result
-=======
         result["before"]=before+len(result["posts"]) #New pagination parameter
     return result

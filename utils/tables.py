@@ -137,8 +137,7 @@ class Post(BaseTable):
     @hybrid_property
     def trendy_ranking(self):
         return self.views/(self.dislikes+1)
-        
-    public_post_types=["JOB","AD","POST","COMMENT", "REPORT", "DISPUTE"]
+    
     
     @hybrid_method
     def is_viewable(self,user):

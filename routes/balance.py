@@ -4,9 +4,6 @@ from utils import common, balance, tables
 from sqlalchemy.orm import Session
 from utils.common import app
 from flask import request
-<<<<<<< HEAD
-#test if pr is working or not
-=======
 
 @app.route("/balance/init")
 @common.authenticate
@@ -73,7 +70,7 @@ def export():
         return result
     elif error==-2:
         result["error"]="UNKNOWN_ERROR"
-        return
+        return result
         
     
     return result

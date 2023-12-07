@@ -1,7 +1,7 @@
 #Should be imported by all relevant files
 
 import sys,os
-import datetime from datetime
+
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)),"..")))
 
 from sqlalchemy import create_engine
@@ -10,7 +10,7 @@ from flask_cors import CORS
 
 database = create_engine("sqlite:///test_db.db")
 
-import users
+import utils.users as users
 
 app=Flask("backend_server")
 
@@ -53,9 +53,9 @@ def authenticate(func): #There is a possible race-condition with two etc. /likes
        
        user=users.getUser(uid)
        
-       has_access=(user is not None) and (hash==user.password_hash) 
-       is_deleted=(user.warnings>3) and ((datetime.utcnow-user.time_of_last_warn).days)>5 and (user.fines!=0)
-       if (not has_access or is_deleted ) :                #user does not have access or is deleted
+       has_access=(user is not None) and (hash==user.password_hash)
+       
+       if not has_access:
            result={"error":"ACCESS_DENIED"}
            return result
        else:
