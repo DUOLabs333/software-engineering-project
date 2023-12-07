@@ -77,7 +77,7 @@ def create_post():
         return result
         
     result["id"]=posts.createPost(data)
-    request["cost"]=cost
+    result["cost"]=cost
     
     return result
 
