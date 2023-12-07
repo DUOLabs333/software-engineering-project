@@ -66,6 +66,10 @@ class User(BaseTable):
     @hybrid_method
     def hasType(self,_type):
         return (self.type & (1<<_type))==(1<<_type)
+        
+    @hasType.expression
+    def hasType(self,_type):
+        return (self.type.bitwise_and(1<<_type))==(1<<_type)
     
     def listTypes(self):
         result=[]

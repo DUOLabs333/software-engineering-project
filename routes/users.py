@@ -330,7 +330,9 @@ def tip():
         session.commit()
         
         target_user.update_trendy_status() #Event handler
-        session.commit()       
+        session.commit()
+        
+        return result      
 
 @app.route("/users/top3posts")
 @common.authenticate
