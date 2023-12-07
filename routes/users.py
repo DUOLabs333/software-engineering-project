@@ -382,16 +382,17 @@ def suggest():
         disliked_posts=set(common.fromStringList(user.disliked_posts))
         
         list_of_users=[]
-        for row in session.scalars(select(tables.User.id,tables.User.following,tables.User.liked_posts,tables.User.disliked_posts).where(tables.User.id!=uid)).all(): #Based ranking on how common their interests are with yours. May be slow on large amount of users
-            row[1]=set(common.fromStringList(row[1]))
-            row[2]=set(common.fromStringList(row[2]))
-            row[3]=set(common.fromStringList(row[3]))
-            intersections=0
-            intersections+=len(following.intersection(row[1]))
-            intersections+=len(liked_posts.intersection(row[2]))
-            intersections+=len(disliked_posts.intersection(row[3]))
+        for row in session.execute(select(tables.User.id,tables.User.following,tables.User.liked_posts,tables.User.disliked_posts).where(tables.User.id!=uid)).all(): #Based ranking on how common their interests are with yours. May be slow on large amount of users
+            user_following=set(common.fromStringList(row.following))
+            user_liked=set(common.fromStringList(row.liked_posts))
+            user_disliked=set(common.fromStringList(row.disliked_posts))
             
-            list_of_users.append([row[0],intersections])
+            intersections=0
+            intersections+=len(following.intersection(user_following))
+            intersections+=len(liked_posts.intersection(user_liked))
+            intersections+=len(disliked_posts.intersection(user_disliked))
+            
+            list_of_users.append([row.id,intersections])
     
     result["users"]=[_[0] for _ in heapq.nlargest(min(10,len(list_of_users)),list_of_users,key=lambda x: x[1])]
     
