@@ -13,8 +13,8 @@ def search():
     
     authors=request.json["authors"]
     keywords=request.json["keywords"]
-    likes=request.json["likes"]
-    dislikes=request.json["dislikes"]
+    likes=request.json["likes"] or [None,None]
+    dislikes=request.json["dislikes"] or [None,None]
     types=request.json["types"] or ["POST"]
     sort=request.json["sort"] or "NEWEST"
     parent=request.json["parent"]
