@@ -93,11 +93,11 @@ class User(BaseTable):
             
     @hybrid_method
     def has_blocked(self,id):
-        return self._contains(self.blocked,id)
+        return User._contains(self.blocked,id)
     
     @hybrid_method
     def has_followed(self,id):
-        return self._contains(self.following,id)
+        return User._contains(self.following,id)
     
     def update_trendy_status(self):
         users.update_trendy_status(self)
