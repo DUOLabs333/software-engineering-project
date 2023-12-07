@@ -17,8 +17,8 @@ from pathlib import Path
 @common.authenticate
 def homepage():
     result={}
-    limit=request.json.get("limit",50)
-    before=request.json.get("before",0)
+    limit=request.json.get("limit",50) or 50
+    before=request.json.get("before",0) or 0
     
     uid=request.json["uid"]
     user=users.getUser(uid)
