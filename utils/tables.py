@@ -78,7 +78,7 @@ class User(BaseTable):
                 result.append(attr)
         return result
     
-    def _contains(self,a,b): #Code to dispatch proper lookup depending on the types of a and b
+    def _contains(a,b): #Code to dispatch proper lookup depending on the types of a and b
         a_str=isinstance(a,str)
         b_int=isinstance(b,int)
         
