@@ -6,7 +6,6 @@ from utils import users, posts
 from flask import request
 
 from sqlalchemy import select, desc, not_
-
 from sqlalchemy.orm import Session
 import multiprocessing
 import random, string,time, heapq
@@ -153,7 +152,7 @@ def block():
         
         if user.has_blocked(blocked_id):
             result["error"]="ALREADY_BLOCKED"
-            return
+            return result
         user.blocked=appendToStringList(user.blocked,blocked_id)
         session.commit()
     return result
@@ -170,7 +169,7 @@ def unblock():
         user=users.getUser(uid,session)
         if not user.has_blocked(blocked_id):
             result["error"]="ALREADY_UNBLOCKED"
-            return
+            return result
         
         user.blocked=removeFromStringList(user.blocked,blocked_id)
         session.commit()
@@ -191,7 +190,7 @@ def delete():
         
         if not(user.hasType(user.SUPER) or (deleted_user.id==user.id)):
             result["error"]="INSUFFICIENT_PERMISSION"
-            return
+            return result
             
         session.delete(deleted_user)
         session.commit()
@@ -301,11 +300,11 @@ def tip():
     
     if uid==target_id:
         result["error"]="SELF_TIP"
-        return
+        return result
     
     if amount < 0:
         result["error"]="NEGATIVE_TIP"
-        return
+        return result
     
     with Session(common.database) as session: #Check if uid has enough and that target has account
         user=users.getUser(uid,session)
@@ -314,15 +313,15 @@ def tip():
         
         if user_balance is None:
             result["error"]="BALANCE_NOT_FOUND"
-            return
+            return result
         
         if balance.GetBalance(target_id) is None:
             result["error"]="TARGET_BALANCE_NOT_FOUND"
-            return
+            return result
         
         if balance.RemoveFromBalance(user.id,amount)==None:
             result["error"]="BALANCE_TOO_SMALL"
-            return
+            return result
             
         balance.AddToBalance(target_id,amount)
         
@@ -341,7 +340,8 @@ def top3posts():
     result["posts"]=[]
     
     user=users.getUser(request.json["uid"])
-    query=select(tables.Post.id).where(tables.Post.is_trendy & not_(user.has_blocked(tables.Post.author))).order_by(desc(tables.Post.trendy_ranking)).limit(3)
+    
+    query=select(tables.Post.id).where(tables.User.hasType(tables.User.TRENDY) & not_( user.has_blocked(tables.Post.author))).order_by(desc(tables.Post.trendy_ranking)).limit(3)
     
     with Session(common.database) as session:
         result["posts"]=session.scalars(query).all()
@@ -356,7 +356,8 @@ def top3users():
     result["users"]=[]
     
     user=users.getUser(request.json["uid"])
-    query=select(tables.User.id).where(tables.User.hasType(user.TRENDY) & not_(user.has_blocked(tables.Post.id))).order_by(desc(tables.User.trendy_ranking)).limit(3)
+    
+    query=select(tables.User.id).where(tables.User.hasType(user.TRENDY) & not_(user.has_blocked(tables.User.id))).order_by(desc(tables.User.trendy_ranking)).limit(3)
     
     with Session(common.database) as session:
         result["users"]=session.scalars(query).all()

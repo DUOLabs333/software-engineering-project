@@ -35,7 +35,7 @@ def is_trendy(user):
         
         result &= (len(session.scalars(query).all())>=2) #wrote at least two trendy posts
         
-        query=select(tables.Post.id).where((tables.Post.type=="WARNING") & (tables.Post.parent_post==user.inbox))
+        query=select(tables.Post.id).where((tables.Post.type=="WARNING") & (tables.Post.parent==user.inbox))
         
         result &= (len(session.scalars(query).all())<3) #Must have less than warnings
         

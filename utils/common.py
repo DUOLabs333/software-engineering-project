@@ -33,7 +33,7 @@ def fromStringList(string):
     return string.removeprefix(" ").removesuffix(" ").split(" ") if string!="" else []
 
 def toStringList(lst):
-    return " "+(" ".join(lst))+" "
+    return "" if lst==[] else " "+(" ".join(lst))+" "
 
 def appendToStringList(lst,val):
     lst=fromStringList(lst)

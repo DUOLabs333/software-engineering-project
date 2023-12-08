@@ -28,16 +28,14 @@ def createPost(data):
         for attr in ["author","text"]:
             setattr(post,attr,data[attr])
         
-        post.keywords=common.toStringList(data.get("keywords",[]))
+        for attr in ["keywords","images","videos"]:
+            setattr(post,attr, common.toStringList(data.get(attr,[])))
         
-        post.parent_post=data.get("parent_post",None)
+        post.parent=data.get("parent",None)
         post.type=data.get("type","POST")
         
         for attr in ["views","likes","dislikes"]:
             setattr(post,attr,0)
-        
-        for attr in ["has_picture","has_video"]:
-            setattr(post,attr,data.get(attr,False)) #Need to find a way to parse markdown for links --- maybe use regex for ![alt-text](link)
         
         session.add(post)
         session.commit()
@@ -57,8 +55,8 @@ def cleanPostData(id,data,user):
     editable_fields=list(set(data.keys()).intersection(set(editable_fields)))
     
     if post is None: #Doesn't exist yet
-        post=tables.User()
-        for attr in editable_fields:
+        post=tables.Post()
+        for attr in editable_fields+["images","videos"]:
             setattr(post,attr,"")
     
     #Only charge for net added words --- you should pay for deleting words
@@ -70,6 +68,9 @@ def cleanPostData(id,data,user):
     for attr in editable_fields:
         words_in_post+=num_of_words(getattr(post,attr))
         words_in_data+=num_of_words(str(data[attr]))
+    
+    words_in_post+=(10*len(common.fromStringList(getattr(post,"images")))+ 15*len(common.fromStringList(getattr(post,"videos")))) #A picture is really worth 1000 words, or in this case, 10
+    words_in_data+=(10*len(data.get("images",[]))+15*len(data.get("videos",[])))
     
     limit=20
     extra_words_in_post=max(words_in_post-limit,0)
@@ -88,14 +89,11 @@ def cleanPostData(id,data,user):
     if user.hasType(user.CORPORATE):
         extra_words=max(words_in_data-words_in_post,0)
         cost=1*extra_words #$1 for every word
-    elif user.hasType(user.ORDINARY) or user.hasType(user.TRENDY):
+    elif user.hasType(user.ANON):
         cost=0.1*extra_words #$0.10 for every word over 20 words (Also need to check for images)
     else:
         error="INSUFFICIENT_PERMISSION" #Can't post without being at least OU
-        return error, data
-    
-    cost+=0.1*len(data.get("pictures",[])) #0.10 for every picture      
-    cost+=0.15*len(data.get("videos",[])) #0.15 for every video
+        return cost, error, data
     
     taboo_word_count=0
     taboo_list="taboo_list.txt"
@@ -119,23 +117,23 @@ def cleanPostData(id,data,user):
             if taboo_word_count>2:
                 #Warn --- set that up
                 error="TOO_MANY_TABOOS"
-                return error, data
+                return cost, error, data
         
         if was_list:
             value=common.fromStringList(value)
         data[attr]=value
     if len(data["keywords"])>3:
         error="TOO_MANY_KEYWORDS"
-        return error, data
+        return cost, error, data
     
     if (data["type"] in ["AD","JOB"]) and (not user.hasType(user.CORPORATE)): #Non-CUs can not post ads.
         error="NOT_CORPORATE_USER"
-        return error, data
+        return cost, error, data
     
     if cost>0:
         return_val=balance.RemoveFromBalance(user.id,cost)
         if return_val==-1: #If you can't pay
             error="NOT_ENOUGH_MONEY"
-            return error, data
+            return cost, error, data
     
-    return error, data
+    return cost, error, data
