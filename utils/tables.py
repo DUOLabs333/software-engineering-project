@@ -40,7 +40,7 @@ class User(BaseTable):
     
     private_fields=["inbox","blocked","id"]
     
-    type_ranking={SURFER:0, ANON:1, ORDINARY:2, TRENDY: 3, CORPORATE:3, SUPER:3} #May have to switch to a tree based structure later to deal with more complex heirarchies. This also models dependencies
+    type_ranking={SURFER:0, ANON:1, ORDINARY:2, TRENDY: 3, CORPORATE:3, SUPER:3} #May have to switch to a tree based structure later to deal with more complex heirarchies. This (the current structure) also models dependencies
         
     def addType(self,_type): #This assumes _type is exactly one type
         if (self.hasType(self.CORPORATE) or self.hasType(self.SUPER)) and _type==self.TRENDY: #SUPER and CORPORATE Users can not become TRENDY
@@ -66,6 +66,10 @@ class User(BaseTable):
     @hybrid_method
     def hasType(self,_type):
         return (self.type & (1<<_type))==(1<<_type)
+        
+    @hasType.expression
+    def hasType(self,_type):
+        return (self.type.bitwise_and(1<<_type))==(1<<_type)
     
     def listTypes(self):
         result=[]
@@ -93,11 +97,11 @@ class User(BaseTable):
             
     @hybrid_method
     def has_blocked(self,id):
-        return self._contains(self.blocked,id)
+        return User._contains(self.blocked,id)
     
     @hybrid_method
     def has_followed(self,id):
-        return self._contains(self.following,id)
+        return User._contains(self.following,id)
     
     def update_trendy_status(self):
         users.update_trendy_status(self)
@@ -143,6 +147,8 @@ class Post(BaseTable):
     
     @hybrid_method
     def is_viewable(self,user):
+        if not user.hasType(user.SURFER):
+            return False
         if self.type not in self.public_types:
             if ((self.author==user.id) or self.parent==user.inbox): #Either user's inbox or message in that inbox
                 return True
@@ -154,6 +160,7 @@ class Post(BaseTable):
     @is_viewable.expression
     def is_viewable(cls,user):
         return case(
+            (not_(user.hasType(user.SURFER)), False),
             (cls.type.in_(cls.public_types), True),
             else_=
                 case(
