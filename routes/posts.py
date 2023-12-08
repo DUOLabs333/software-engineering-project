@@ -13,6 +13,9 @@ import base64, os, random, string
 import multiprocessing, json
 from pathlib import Path
 
+from flask import request, send_file, current_app, url_for, jsonify
+from werkzeug.utils import secure_filename
+
 @app.route("/posts/homepage")
 @common.authenticate
 def homepage():
@@ -388,3 +391,14 @@ def report_post():
         # Create the report post
         result["id"] = posts.createPost(data)
         return result
+        
+@app.route("/upload_image")
+def image():
+    upload_folder = current_app.root_path + "/static/images"
+    print(upload_folder)
+    uploaded_img = request.files.get('image')  # Get the image that has been uploaded
+    img_name = secure_filename(uploaded_img.filename).lower()  # Get the name of the iamge
+    uploaded_img.save(os.path.join(upload_folder, img_name))  # Save that image to the appropriate directory
+    location = url_for('static', filename='images/' + img_name)
+    print("LOCATION: ", location)
+    return jsonify({'location': location})
