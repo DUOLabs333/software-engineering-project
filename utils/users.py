@@ -24,9 +24,9 @@ def is_trendy(user):
         
         result &= (len(session.scalars(query).all())>=2) #wrote at least two trendy posts
         
-        query=select(tables.Post.id).where((tables.Post.type=="WARNING") & (tables.Post.parent==user.inbox))
+        query=select(tables.Post.id).where((tables.Post.type=="WARNING") & (tables.Post.parent==user.inbox)).limit(3)
         
-        result &= (len(session.scalars(query).limit(3))<3) #Must have less than three warnings
+        result &= (len(session.scalars(query))<3) #Must have less than three warnings
         
         result &= user.hasType(user.ORDINARY)
         
