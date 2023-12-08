@@ -123,6 +123,8 @@ def post_info():
                 
             result[col]=value
         
+        #Maybe add number of reports later?
+        
     return result
 
 @app.route("/posts/edit")
