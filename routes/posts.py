@@ -393,7 +393,7 @@ def report_post():
         return result
         
 @app.route("/upload_image")
-def image():
+def image1():
     upload_folder = current_app.root_path + "/static/images"
     print(upload_folder)
     uploaded_img = request.files.get('image')  # Get the image that has been uploaded
