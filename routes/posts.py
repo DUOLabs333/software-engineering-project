@@ -396,7 +396,7 @@ def report_post():
 def image1():
     upload_folder = os.path.join(current_app.root_path,"static","images")
     
-    Path(upload_folder).mkdir(parent=True,exist_ok=True)
+    Path(upload_folder).mkdir(parents=True,exist_ok=True)
         
     uploaded_img = request.files.get('image')  # Get the image that has been uploaded
     img_name = secure_filename(uploaded_img.filename).lower()  # Get the name of the iamge
