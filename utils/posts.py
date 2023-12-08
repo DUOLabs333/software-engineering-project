@@ -58,6 +58,10 @@ def cleanPostData(id,data,user):
         post=tables.Post()
         for attr in editable_fields+["images","videos"]:
             setattr(post,attr,"")
+    else:
+        if post.author!=user.id:
+            error="INSUFFICIENT_PERMISSION"
+            return cost, error, data
     
     #Only charge for net added words --- you should pay for deleting words
     

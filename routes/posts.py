@@ -130,7 +130,7 @@ def post_edit():
     uid=request.json["uid"]
     user=users.getUser(uid)
     if not user.hasType(user.ANON):
-        result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
+        result["error"]="INSUFFICIENT_PERMISSION"
         return result
     
         
@@ -330,7 +330,23 @@ def image_upload():
             
         result["id"]=upload.id
         return result
-
+        
+@app.route("/posts/top3posts")
+@common.authenticate
+def top3posts():
+    result={}
+    
+    result["posts"]=[]
+    
+    user=users.getUser(request.json["uid"])
+    
+    query=select(tables.Post.id).where(tables.User.hasType(tables.User.TRENDY) & not_( user.has_blocked(tables.Post.author))).order_by(desc(tables.Post.trendy_ranking)).limit(3)
+    
+    with Session(common.database) as session:
+        result["posts"]=session.scalars(query).all()
+    
+    return result
+    
 @app.route("/media")
 def image():
     

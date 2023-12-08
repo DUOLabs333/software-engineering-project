@@ -92,7 +92,9 @@ def info():
         if user is None:
             result["error"]="USER_NOT_FOUND"
             return result
-        
+        elif not user.hasType(user.SURFER):
+            result["error"]="INSUFFICIENT_PERMISSION"
+            return result
         for col in user.__mapper__.attrs.keys():
             value=getattr(user,col)
             
@@ -334,21 +336,7 @@ def tip():
         
         return result      
 
-@app.route("/users/top3posts")
-@common.authenticate
-def top3posts():
-    result={}
-    
-    result["posts"]=[]
-    
-    user=users.getUser(request.json["uid"])
-    
-    query=select(tables.Post.id).where(tables.User.hasType(tables.User.TRENDY) & not_( user.has_blocked(tables.Post.author))).order_by(desc(tables.Post.trendy_ranking)).limit(3)
-    
-    with Session(common.database) as session:
-        result["posts"]=session.scalars(query).all()
-    
-    return result
+
 
 @app.route("/users/top3users")
 @common.authenticate
