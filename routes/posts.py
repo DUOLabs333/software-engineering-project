@@ -6,64 +6,63 @@ from utils.common import app
 
 from flask import request, send_file
 from sqlalchemy import select, desc, not_
+
 from sqlalchemy.orm import Session
 
 import base64, os, random, string
 import multiprocessing
 from pathlib import Path
-import datetime from datetime
-lock=multiprocessing.Lock() #Not enough to use autoincrement ---- autoincrement doesn't neccessarily create monotonically increasing IDs, only unique ones. However, we need it in a specific order.
 
-
-@app.route("/posts/homepage", methods = ['POST'])
+@app.route("/posts/homepage")
 @common.authenticate
 def homepage():
     result={}
-    limit=request.json.get("limit",50)
-    before=request.json.get("before",float("inf"))
+    limit=request.json.get("limit",50) or 50
+    before=request.json.get("before",0) or 0
     
     uid=request.json["uid"]
     user=users.getUser(uid)
     with Session(common.database) as session:
+                
+        query=select(tables.Post.id).where(user.has_followed(tables.Post.author) & not_(user.has_blocked(tables.Post.author)) & (tables.Post.type=="POST")).order_by(tables.Post.time_posted.desc()).offset(before).limit(limit) #Sort chronologically, not algorithmically --- one of the biggest problems with other social media sites
         
-        post_query=select(tables.Post.id).where(user.has_followed(tables.Post.author) & (tables.Post.id < before) & not_(user.has_blocked(tables.Post.author)) & (tables.Post.type=="POST") ).limit(limit).order_by(desc(tables.Post.id)) #Sort chronologically, not algorithmically --- one of the biggest problems with other social media sites
-       
-        posts = session.scalars(post_query).all()  # Fetch regular posts
-        result["posts"]=session.scalars(posts).all()
+        result["posts"]=session.scalars(query).all()
+        result["before"]=before+len(result["posts"])
         
         return result
-    
-  
- 
+        
             
-@app.route("/posts/trending", methods = ['POST'])
+@app.route("/posts/trending")
 @common.authenticate
 def trending():
     result={}
     
     limit=request.json.get("limit",50)
-    before=request.json.get("before",float("inf"))
+    before=request.json.get("before",0)
     
     uid=request.json["uid"]
     with Session(common.database) as session:
         result["posts"]=[]
         
         user=users.getUser(uid)
-        query=select(tables.Post.id).where((tables.Post.id < before) & not_(user.has_blocked(tables.Post.author)) & (tables.Post.is_trendy==True) ).limit(limit).order_by(desc(tables.Post.trendy_ranking))
+        
+        query=select(tables.Post.id).where(not_(user.has_blocked(tables.Post.author)) & (tables.Post.is_trendy==True) ).order_by(desc(tables.Post.trendy_ranking)).offset(before).limit(limit)
         
         result["posts"]=session.scalars(query).all()
+        result["before"]=before+len(result["posts"])
         
         return result
 
 
-@app.route("/posts/create", methods = ['POST'])
+@app.route("/posts/create")
 @common.authenticate
 def create_post():
     result={}
     
     uid=request.json["uid"]
     user=users.getUser(uid)
-    if not user.hasType(user.ORDINARY):
+    if not user.hasType(user.ANON):
+        print(user.listTypes())
         result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
     
@@ -71,17 +70,18 @@ def create_post():
     
     #Get which words were added to title,post. create will delete post, edit will revert post (make rollback object)
     
-    error, data = posts.cleanPostData(None,data,user)
+    cost, error, data = posts.cleanPostData(None,data,user)
     
     if error!=None:
         result["error"]=error
-        return
+        return result
         
     result["id"]=posts.createPost(data)
+    result["cost"]=cost
     
     return result
 
-@app.route("/posts/info", methods = ['POST'])
+@app.route("/posts/info")
 @common.authenticate
 def post_info():
     result={}
@@ -93,7 +93,7 @@ def post_info():
         
         if not post.is_viewable(user):
             result["error"]="INSUFFICIENT_PERMISSION"
-            return
+            return result
                 
         post.views+=1 #Someone looked at it
         
@@ -103,7 +103,7 @@ def post_info():
                 result["error"]="APPLICATION_NOT_AVAILABLE"
                 post.views-=1
                 session.commit()
-                return
+                return result
         session.commit()
         users.getUser(post.author).update_trendy_status() #Event handler
         session.commit()
@@ -122,14 +122,14 @@ def post_info():
         
     return result
 
-@app.route("/posts/edit", methods = ['POST'])
+@app.route("/posts/edit")
 @common.authenticate
 def post_edit():
     result={}
     
     uid=request.json["uid"]
     user=users.getUser(uid)
-    if not user.hasType(user.ORDINARY):
+    if not user.hasType(user.ANON):
         result["error"]="INSUFFICIENT_PERMISSION" #If not OU, can't post, dislike, like, etc.
         return result
     
@@ -141,11 +141,11 @@ def post_edit():
             return 
         
         data=request.json
-        error, data=posts.cleanPostData(data["id"],data,user)
+        cost, error, data=posts.cleanPostData(data["id"],data,user)
         
         if error!=None:
             result["error"]=error
-            return
+            return result
                 
         for field in post.editable_fields:
             value=data.get(field,getattr(post,field)) #Get new value, otherwise, just get what was there before
@@ -155,15 +155,14 @@ def post_edit():
             setattr(post,field,value)
             
         session.commit(post)
-            
+    
+    result["cost"]=cost        
     return result
     
-@app.route("/posts/delete", methods = ['POST'])
+@app.route("/posts/delete")
 @common.authenticate
 def post_delete():
     result={}
-    
-    lock.acquire()
     
     post_id=request.json.get("id",type=int)
     
@@ -177,7 +176,7 @@ def post_delete():
         if post.type=="INBOX":
             can_delete=False
         elif post.type=="COMMENT":
-            parent_post=posts.getPost(post.parent_id)
+            parent_post=posts.getPost(post.parent)
             if parent_post.author==uid:
                 can_delete=True
             
@@ -189,12 +188,10 @@ def post_delete():
         
         if not can_delete:
             result["error"]="INSUFFICIENT_PERMISSION"
-            lock.release()
             return result
         else:
             session.delete(post)
             session.commit()
-            lock.release()
             return result
             
 @app.route("/posts/like")
@@ -231,8 +228,9 @@ def like_post():
             liked_posts.append(str(post_id))
             user.liked_posts = common.toStringList(liked_posts)
         else:
-            result["error"]="ALREADY_LIKED"
-            return
+            liked_posts.remove(str(post_id)) #Reverses like. Prevents duplication for /unlike
+            user.liked_posts = common.toStringList(liked_posts)
+            post.likes -= 1
             
         session.commit()
         users.getUser(post.author).update_trendy_status() #Event handler
@@ -274,8 +272,9 @@ def dislike_post():
             disliked_posts.append(str(post_id))
             user.disliked_posts = common.toStringList(disliked_posts)
         else:
-            result["error"]="ALREADY_DISLIKED"
-            return
+            disliked_posts.remove(str(post_id))
+            user.disliked_posts = common.toStringList(disliked_posts)
+            post.dislikes -= 1
         
         session.commit()
         users.getUser(post.author).update_trendy_status() #Event handler
@@ -288,7 +287,7 @@ random_string = lambda N: ''.join(random.choices(string.ascii_uppercase + string
 
 upload_lock=multiprocessing.Lock()
 
-@app.route("/users/upload", methods = ['POST'])
+@app.route("/users/upload")
 @common.authenticate
 def image_upload():
     result={}
@@ -332,7 +331,7 @@ def image_upload():
         result["id"]=upload.id
         return result
 
-@app.route("/media", methods = ['POST'])
+@app.route("/media")
 def image():
     
     id=request.json["id"]
@@ -342,3 +341,7 @@ def image():
         
         return send_file(path, mimetype=type)
         
+    
+    
+    
+    

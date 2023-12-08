@@ -22,7 +22,7 @@ def checkIfUsernameExists(username): #You must have the USERS database locked, a
 
 #CRUD: Create, Read, Update, Delete
 
-@app.route("/users/create", methods = ['POST'])
+@app.route("/users/create")
 def create():
     result={}
     
@@ -37,6 +37,8 @@ def create():
             if not checkIfUsernameExists(data["username"]):
                 break
         data["password_hash"]=''.join(random.choices(string.ascii_uppercase + string.digits, k=256))
+        
+        data["type"]="ANON"
     
     username=data["username"]
     
@@ -54,7 +56,7 @@ def create():
     
     type=data.get("type","SURFER")
     
-    if type not in ["SURFER","ORDINARY","CORPORATE"]:
+    if (not isinstance(type,str)) or (type in ["SUPER","TRENDY"]):
         result["error"]="INVALID_USER_TYPE"
         return result
     
@@ -78,7 +80,7 @@ def create():
             result["password_hash"]=user.password_hash
     return result
 
-@app.route("/users/info", methods = ['POST'])
+@app.route("/users/info")
 @common.authenticate
 def info():
     result={}
@@ -95,19 +97,20 @@ def info():
         for col in user.__mapper__.attrs.keys():
             value=getattr(user,col)
             
-            if col=="password_hash":
+            if col in user.private_fields and id!=uid:
+                continue
+            elif col=="password_hash":
                 continue
             elif col=="type":
                 value=user.listTypes()
             elif col in ["following","liked_posts","disliked_posts","pictures","videos"]:
                 value=common.fromStringList(value)
-            elif col in ["inbox","blocked","id"] and id!=uid:
-                continue
+            
             result[col]=value
         
         return result
         
-@app.route("/users/modify", methods = ['POST'])
+@app.route("/users/modify")
 @common.authenticate
 def modify():
     result={}
@@ -137,7 +140,7 @@ def modify():
             session.commit()
         return result
 
-@app.route("/users/block", methods = ['POST'])
+@app.route("/users/block")
 @common.authenticate
 def block():
     result={}
@@ -155,7 +158,7 @@ def block():
         session.commit()
     return result
 
-@app.route("/users/unblock", methods = ['POST'])
+@app.route("/users/unblock")
 @common.authenticate
 def unblock():
     result={}
@@ -173,7 +176,7 @@ def unblock():
         session.commit()
     return result
     
-@app.route("/users/delete", methods = ['POST'])
+@app.route("/users/delete")
 @common.authenticate
 def delete():
     result={}
@@ -195,7 +198,7 @@ def delete():
         lock.release()
         return result
 
-@app.route("/users/signin", methods = ['POST'])
+@app.route("/users/signin")
 def signin():
     result={}
     with Session(common.database) as session:
@@ -317,7 +320,7 @@ def tip():
             result["error"]="TARGET_BALANCE_NOT_FOUND"
             return
         
-        if balance.RemoveFromBalance(user.id,amount)==-1:
+        if balance.RemoveFromBalance(user.id,amount)==None:
             result["error"]="BALANCE_TOO_SMALL"
             return
             
@@ -393,28 +396,5 @@ def suggest():
 
 
 
-@app.route("/users/warn", methods=["POST"])
-@common.authenticate
-def assign_warning():
-    result = {}
 
-    uid = request.json["uid"]
-    target_user = request.json["target_user"]
-    
-    with Session(common.database) as session:
-        issuer = users.getUser(uid, session)  # The SUPER user issuing the warning
-        recipient = users.getUser(target_user, session)  # The user to be warned
-
-        # Check if issuer is SUPER and recipient is not SUPER
-        if issuer.hasType(User.SUPER) and not recipient.hasType(User.SUPER):  #want to avoid a case where super user can just delete their own report against them by having super user not get reported
-            recipient.warnings += 1  # Increment the warnings count
-            recipient.time_of_last_warn = datetime.utcnow()  # Update the last warning time to now
-        else:
-            result["error"] = "INSUFFICIENT_PERMISSION_OR_INVALID_TARGET"
-            return result
-
-        session.commit()  
-
-    result["message"] = "Warning assigned successfully"
-    return result  
 

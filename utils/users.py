@@ -1,4 +1,5 @@
 from utils import tables, common, balance
+from utils import tables, common, balance
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
@@ -11,7 +12,7 @@ def getUser(user_id,session=None):
     query=select(tables.User).where(tables.User.id==user_id)
     result=session.scalars(query).one_or_none()
     
-    if session_exists:
+    if not session_exists:
         session.close() 
     return result
 
@@ -28,7 +29,7 @@ def is_trendy(user):
         query=select(func.sum(tables.Post.likes)/(func.sum(tables.Post.dislikes)+1)).where(tables.Post.author==user.id)
         
         ratio=session.scalars(query).one_or_none() or 0
-        result&=(user.tips>100 or ratio>10) #received >$100 in tips or have >10 more likes than dislikes
+        result&=((user.tips>100) or (ratio>10)) #received >$100 in tips or have >10 more likes than dislikes
         
         query=select(tables.Post.id).where((tables.Post.author==user.id) & (tables.Post.is_trendy==True))
         
@@ -37,6 +38,8 @@ def is_trendy(user):
         query=select(tables.Post.id).where((tables.Post.type=="WARNING") & (tables.Post.parent_post==user.inbox))
         
         result &= (len(session.scalars(query).all())<3) #Must have less than warnings
+        
+        result &= user.hasType(user.ORDINARY)
         
     return result
 
@@ -54,25 +57,3 @@ def get_user_warnings_count(user):    #returns warnings for any given user
             warnings_count= user.warnings
             return warnings_count
     
-def handle_three_warnings(user):
-    int amount =20
-    with Session(common.database) as session:
-        user=getUser(user.id,session)
-        # Check if user is an ORDINARY User (OU) or CORPORATE User (CU)
-        if user.hasType(user.ORDINARY) or user.hasType(user.CORPORATE):
-
-
-            #logic for if they want to pay or not
-            balance.RemoveFromBalance(user.id,amount)  #remove $20 from user balance
-            #imagine an else statement here for if they want to pay or not
-        
-            if user.hasType(user.ORDINARY):
-                user.removeType(user.ORDINARY)  #remove typing
-            if user.hasType(user.CORPORATE)     
-                user.removeType(user.CORPORATE) #remove typing
-            user.addType(user.BANNED) #become banned
-
-
-         if user.hasType(user.TRENDY):
-            user.removeType(user.TRENDY)
-            
