@@ -4,7 +4,7 @@ from sqlalchemy.orm import mapped_column
 from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
 from utils import users
 from sqlalchemy import func, select, literal
-from sqlalchemy import or_, case
+from sqlalchemy import not_, and_, or_, case
 from sqlalchemy.types import String
 
 import time
@@ -152,6 +152,8 @@ class Post(BaseTable):
         if self.type not in self.public_types:
             if ((self.author==user.id) or self.parent==user.inbox): #Either user's inbox or message in that inbox
                 return True
+            if (user.hasType(user.SUPER)) and (self.type in ["REPORT","DISPUTE"]):
+                return True
             else:
                 return False
         else:
@@ -165,6 +167,7 @@ class Post(BaseTable):
             else_=
                 case(
                 (or_(cls.author==user.id,cls.parent==user.inbox),True),
+                (and_(cls.type.in_(["POST","DISPUTE"]),user.hasType(user.SUPER)),True),
                 else_=False
                 )
            )

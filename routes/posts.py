@@ -10,7 +10,7 @@ from sqlalchemy import select, desc, not_
 from sqlalchemy.orm import Session
 
 import base64, os, random, string
-import multiprocessing
+import multiprocessing, json
 from pathlib import Path
 
 @app.route("/posts/homepage")
@@ -203,7 +203,7 @@ def like_post():
     post_id=request.json["post_id"]
     user = users.getUser(uid)
     if not user.hasType(user.ORDINARY):
-        result["error"] = "NOT_ORDINARY_USER"
+        result["error"] = "INSUFFICIENT_PERMISSION"
         return result
 
     with Session(common.database) as session:
@@ -357,7 +357,34 @@ def image():
         
         return send_file(path, mimetype=type)
         
-    
-    
-    
-    
+@app.route("/posts/report")
+@common.authenticate
+def report_post():
+    result = {}
+
+    uid = request.json["uid"]
+    target = request.json["target"] #Target post, not user
+    reason = request.json["reason"]
+   
+    with Session(common.database) as session:
+        user = users.getUser(uid, session) #user making report
+        if not user.hasType(user.ANON):
+            result["error"]="INSUFFICIENT_PERMISSION"
+            return result
+            
+        text={
+        "target": target,
+        "reason": reason
+        }
+        
+        data = {
+        "author": uid,
+        "text": json.dumps(text), #report by complainer against complainee and then report text
+        "type": "REPORT",
+        "keywords": ["OPEN"]
+        }
+            
+            
+        # Create the report post
+        result["id"] = posts.createPost(data)
+        return result

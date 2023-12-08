@@ -3,17 +3,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import Session
 
 def getUser(user_id,session=None):
-    session_exists=True
-    if session is None:
-        session_exists=False #Have to make one
-        session=Session(common.database,expire_on_commit=False) #Can be used outside session
-        
-    query=select(tables.User).where(tables.User.id==user_id)
-    result=session.scalars(query).one_or_none()
-    
-    if not session_exists:
-        session.close() 
-    return result
+    return common.getItem(tables.User,user_id,session)
 
 
 def is_trendy(user):
@@ -36,7 +26,7 @@ def is_trendy(user):
         
         query=select(tables.Post.id).where((tables.Post.type=="WARNING") & (tables.Post.parent==user.inbox))
         
-        result &= (len(session.scalars(query).all())<=3) #Must have at most three warnings
+        result &= (len(session.scalars(query).limit(3))<3) #Must have less than three warnings
         
         result &= user.hasType(user.ORDINARY)
         

@@ -1,22 +1,11 @@
 import utils.common as common
 from utils import balance
 import utils.tables as tables
-from sqlalchemy import select
 from sqlalchemy.orm import Session
 import re, time
 
 def getPost(post_id,session=None):
-    session_exists=True
-    if session is None:
-        session_exists=False #Have to make one
-        session=Session(common.database,expire_on_commit=False) #Can be used outside session
-        
-    query=select(tables.Post).where(tables.Post.id==post_id)
-    result=session.scalars(query).one_or_none()
-    
-    if not session_exists:
-        session.close() 
-    return result
+    return common.getItem(tables.Post,post_id,session)
 
 def createPost(data):
     post=tables.Post()
@@ -61,7 +50,7 @@ def cleanPostData(id,data,user):
     else:
         if post.author!=user.id:
             error="INSUFFICIENT_PERMISSION"
-            return cost, error, data
+            return 0, error, data
     
     #Only charge for net added words --- you should pay for deleting words
     

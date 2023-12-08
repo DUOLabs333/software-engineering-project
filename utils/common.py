@@ -4,7 +4,8 @@ import sys,os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)),"..")))
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import Session
 from flask import Flask, request
 from flask_cors import CORS
 
@@ -14,6 +15,19 @@ import utils.users as users
 
 app=Flask("backend_server")
 
+def getItem(cls,id,session=None):
+    session_exists=True
+    if session is None:
+        session_exists=False #Have to make one
+        session=Session(database,expire_on_commit=False) #Can be used outside session
+        
+    query=select(cls).where(cls.id==id)
+    result=session.scalars(query).one_or_none()
+    
+    if not session_exists:
+        session.close() 
+    return result
+    
 def post_wrap(func):
     def wrapper(*args,**kwargs):
         key="methods"

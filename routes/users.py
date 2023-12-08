@@ -8,7 +8,7 @@ from flask import request
 from sqlalchemy import select, desc, not_
 from sqlalchemy.orm import Session
 import multiprocessing
-import random, string,time, heapq
+import random, string,time, heapq, json
 
 lock=multiprocessing.Lock() #We lock not because of the IDs (autoincrement is enough), but because of the usernames
 
@@ -385,3 +385,42 @@ def suggest():
     result["users"]=[_[0] for _ in heapq.nlargest(min(10,len(list_of_users)),list_of_users,key=lambda x: x[1])]
     
     return result
+
+@app.route("/users/dispute")
+@common.authenticate
+def dispute_report():
+    result = {}
+    
+    uid = request.json["uid"] #the user id for complainee
+    target = request.json["target"]  # ID of the report being disputed
+    reason = request.json["reason"]  #Reason for the dispute
+    
+    with Session(common.database) as session:
+        complainee = users.getUser(uid, session) 
+        report = posts.getPost(target)
+        
+        if report is None:
+            result["error"]="REPORT_NOT_FOUND"
+            return result
+        
+        complainee=json.loads(report.text)["target"]    
+        # Ensure the report exists and the complainee is the one being reported
+        if  not(complainee!=uid and report.type == "REPORT"):
+            result["error"]="INVALID_REPORT"
+            return result
+        
+        text={
+        "target": target,
+        "reason": reason
+        }
+        
+        data = {
+        "author": uid,
+        "text": json.dumps(text), #report by complainer against complainee and then report text
+        "type": "DISPUTE",  
+        }
+            
+            
+        # Create the report post
+        result["id"] = posts.createPost(data)
+        return result
