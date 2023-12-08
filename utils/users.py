@@ -26,7 +26,7 @@ def is_trendy(user):
         
         query=select(tables.Post.id).where((tables.Post.type=="WARNING") & (tables.Post.parent==user.inbox)).limit(3)
         
-        result &= (len(session.scalars(query))<3) #Must have less than three warnings
+        result &= (len(session.scalars(query).all())<3) #Must have less than three warnings
         
         result &= user.hasType(user.ORDINARY)
         
