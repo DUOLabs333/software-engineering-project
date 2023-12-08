@@ -343,7 +343,7 @@ def top3posts():
     
     user=users.getUser(request.json["uid"])
     
-    query=select(tables.Post.id).where(tables.User.hasType(tables.User.TRENDY) & not_( user.has_blocked(tables.Post.author))).order_by(desc(tables.Post.trendy_ranking)).limit(3)
+    query=select(tables.Post.id).where(tables.Post.is_trendy & not_( user.has_blocked(tables.Post.author))).order_by(desc(tables.Post.trendy_ranking)).limit(3)
     
     with Session(common.database) as session:
         result["posts"]=session.scalars(query).all()
